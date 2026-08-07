@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { CheckoutForm } from "./checkout-form";
-import { CheckoutEstimate } from "@/components/order/checkout-estimate";
 import { Button } from "@/components/ui/button";
 import { getCustomerCookieName } from "@/lib/auth/customer-token";
 import { getDefaultVehicle } from "@/server/services/orders";
 import type { OrderSource } from "@/types/database";
+
+export const dynamic = "force-dynamic";
 
 type PageProps = {
   searchParams: Promise<{ source?: string }>;
@@ -55,19 +56,11 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
           إكمال الطلب
         </h1>
         <p className="mt-2 text-sm text-[var(--ink-muted)]">
-          🚗 استلام من السيارة
+          استلام من السيارة
         </p>
       </header>
 
-      <CheckoutEstimate>
-        {(displayTotalMinor) => (
-          <CheckoutForm
-            source={source}
-            savedVehicle={savedVehicle}
-            displayTotalMinor={displayTotalMinor}
-          />
-        )}
-      </CheckoutEstimate>
+      <CheckoutForm source={source} savedVehicle={savedVehicle} />
     </main>
   );
 }

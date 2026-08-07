@@ -4,9 +4,14 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { nanoid } from "nanoid";
 import { useCart } from "@/components/order/cart-store";
+import {
+  getGroupsForProduct,
+  readCachedMenu,
+  unitPriceMinor,
+} from "@/components/order/menu-helpers";
 import { Button } from "@/components/ui/button";
 import { formatVehicleLabel } from "@/domains/vehicles/validation";
-import { formatSar } from "@/lib/money";
+import { calculateTax, formatSar } from "@/lib/money";
 import { checkoutAction } from "@/server/actions/checkout";
 import type { OrderSource } from "@/types/database";
 
@@ -30,14 +35,9 @@ const PAYMENT_OPTIONS: { id: PaymentMethod; label: string; preferred?: boolean }
 type CheckoutFormProps = {
   source: OrderSource;
   savedVehicle: SavedVehicle | null;
-  displayTotalMinor: number;
 };
 
-export function CheckoutForm({
-  source,
-  savedVehicle,
-  displayTotalMinor,
-}: CheckoutFormProps) {
+export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
   const router = useRouter();
   const { items, clear, itemCount } = useCart();
   const [pending, startTransition] = useTransition();
@@ -52,6 +52,20 @@ export function CheckoutForm({
   const [error, setError] = useState<string | null>(null);
 
   const idempotencyKey = useMemo(() => nanoid(24), []);
+
+  const displayTotalMinor = useMemo(() => {
+    const menu = readCachedMenu();
+    if (!menu || items.length === 0) return 0;
+    const productMap = new Map(menu.products.map((p) => [p.id, p]));
+    const subtotal = items.reduce((sum, line) => {
+      const product = productMap.get(line.productId);
+      if (!product) return sum;
+      const groups = getGroupsForProduct(menu, line.productId);
+      const unit = unitPriceMinor(product, line.modifiers, groups);
+      return sum + unit * line.quantity;
+    }, 0);
+    return subtotal + calculateTax(subtotal, 1500);
+  }, [items]);
 
   const vehicleLabel = savedVehicle
     ? formatVehicleLabel(savedVehicle.make_model, savedVehicle.color)
@@ -86,7 +100,6 @@ export function CheckoutForm({
         firstName: firstName.trim() || null,
         vehicle,
         vehicleId: useSavedVehicle && savedVehicle ? savedVehicle.id : null,
-        // Only send when we have a real estimate; 0 must not block payment.
         clientTotalMinor: displayTotalMinor > 0 ? displayTotalMinor : undefined,
         source,
         idempotencyKey,
@@ -107,7 +120,9 @@ export function CheckoutForm({
       clear();
 
       const { publicOrderNumber, accessToken } = result.data;
-      const tokenQuery = accessToken ? `?t=${encodeURIComponent(accessToken)}` : "";
+      const tokenQuery = accessToken
+        ? `?t=${encodeURIComponent(accessToken)}`
+        : "";
       router.push(`/order/${publicOrderNumber}${tokenQuery}`);
     });
   };
@@ -140,6 +155,7 @@ export function CheckoutForm({
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             required
+            aria-label="رقم الجوال"
             className="w-full rounded-xl border border-[var(--line)] bg-white/70 px-4 py-3 text-left focus:border-[var(--accent)]"
           />
         </label>
@@ -196,6 +212,7 @@ export function CheckoutForm({
                 value={makeModel}
                 onChange={(e) => setMakeModel(e.target.value)}
                 required={!useSavedVehicle}
+                aria-label="نوع السيارة"
                 className="w-full rounded-xl border border-[var(--line)] bg-white/70 px-4 py-3 focus:border-[var(--accent)]"
               />
             </label>
@@ -207,6 +224,7 @@ export function CheckoutForm({
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
                 required={!useSavedVehicle}
+                aria-label="لون السيارة"
                 className="w-full rounded-xl border border-[var(--line)] bg-white/70 px-4 py-3 focus:border-[var(--accent)]"
               />
             </label>
@@ -218,6 +236,7 @@ export function CheckoutForm({
                 maxLength={3}
                 value={plateHint}
                 onChange={(e) => setPlateHint(e.target.value)}
+                aria-label="آخر أرقام اللوحة"
                 className="w-full rounded-xl border border-[var(--line)] bg-white/70 px-4 py-3 text-left focus:border-[var(--accent)]"
               />
             </label>
@@ -255,7 +274,7 @@ export function CheckoutForm({
           ))}
         </div>
         <p className="text-xs text-[var(--ink-muted)]">
-          الدفع تجريبي حاليًا — ما راح ينخصم منك شي
+          الدفع تجريبي حاليًا — ما راح ينخصم منك شيء
         </p>
       </section>
 
@@ -269,7 +288,10 @@ export function CheckoutForm({
       </div>
 
       {error && (
-        <p className="rounded-xl bg-[var(--danger)]/10 px-4 py-3 text-sm text-[var(--danger)]" role="alert">
+        <p
+          className="rounded-xl bg-[var(--danger)]/10 px-4 py-3 text-sm text-[var(--danger)]"
+          role="alert"
+        >
           {error}
         </p>
       )}
