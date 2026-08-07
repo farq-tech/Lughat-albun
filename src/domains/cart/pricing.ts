@@ -143,8 +143,11 @@ export function priceCart(
   const serviceFeeMinor = assertMinor(catalog.serviceFeeMinor);
   const totalMinor = subtotalMinor + taxAmountMinor + serviceFeeMinor;
 
+  // Ignore missing/zero client totals (display estimate may be unavailable).
+  // Only flag a real mismatch when the client sent a positive total.
   const priceChanged =
     typeof previousClientTotalMinor === "number" &&
+    previousClientTotalMinor > 0 &&
     previousClientTotalMinor !== totalMinor;
 
   return {

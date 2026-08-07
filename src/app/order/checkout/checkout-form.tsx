@@ -86,14 +86,21 @@ export function CheckoutForm({
         firstName: firstName.trim() || null,
         vehicle,
         vehicleId: useSavedVehicle && savedVehicle ? savedVehicle.id : null,
-        clientTotalMinor: displayTotalMinor,
+        // Only send when we have a real estimate; 0 must not block payment.
+        clientTotalMinor: displayTotalMinor > 0 ? displayTotalMinor : undefined,
         source,
         idempotencyKey,
         paymentSimulate: "success",
       });
 
       if (!result.ok) {
-        setError(result.message);
+        if (result.code === "PRICE_CHANGED") {
+          setError("تغير سعر أحد المنتجات — حدّث الصفحة وكمّل الدفع.");
+        } else if (result.code === "PAYMENT_FAILED") {
+          setError("صار خطأ في الدفع، ما انخصم منك شيء.");
+        } else {
+          setError(result.message);
+        }
         return;
       }
 
