@@ -16,7 +16,7 @@ function BrandMark() {
         width={160}
         height={160}
         priority
-        className="size-36 rounded-full object-cover shadow-sm sm:size-40"
+        className="size-36 rounded-full object-contain shadow-sm sm:size-40"
       />
       <div className="flex flex-col items-center gap-1">
         <span className="font-display text-[2.75rem] leading-none tracking-tight text-[var(--ink)] sm:text-5xl">
