@@ -84,14 +84,20 @@ export async function setCustomerPresence(input: {
   });
 
   if (!allowed.ok) {
-    if (allowed.code === "NOT_READY") {
+    if (allowed.code === "NOT_ALLOWED_STATUS") {
       throw new DomainError(
-        "NOT_READY",
-        "طلبك بعد مو جاهز. بنحدث الحالة تلقائيًا.",
+        "NOT_ALLOWED_STATUS",
+        "ما نقدر نحدّث موقعك بهالمرحلة.",
       );
     }
     if (allowed.code === "ORDER_COMPLETED") {
       throw new DomainError("ORDER_COMPLETED", "الطلب مكتمل، ما نقدر نغيّر الحالة");
+    }
+    if (allowed.code === "INVALID_TRANSITION") {
+      throw new DomainError(
+        "INVALID_TRANSITION",
+        "ما يصير ترجع لحالة سابقة بعد ما وصلت.",
+      );
     }
     throw new DomainError("INVALID_STATE", "ما نقدر نسجل هالخطوة الحين");
   }

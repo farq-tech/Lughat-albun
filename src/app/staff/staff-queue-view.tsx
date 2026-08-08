@@ -385,7 +385,11 @@ function OrderCard({
         <div className="mt-2 flex flex-wrap gap-2 text-xs text-[var(--ink-muted)]">
           <span>{order.itemCount} صنف</span>
           <span>{formatSar(order.total_minor)}</span>
-          {order.payment_status === "PAID" ? (
+          {order.payment_method === "CASH_ON_DELIVERY" ? (
+            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-900">
+              دفع عند الاستلام
+            </span>
+          ) : order.payment_status === "PAID" ? (
             <span className="rounded bg-green-100 px-1.5 py-0.5 text-green-800">
               مدفوع
             </span>

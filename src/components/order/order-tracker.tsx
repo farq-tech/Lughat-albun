@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   CUSTOMER_PRESENCE_LABELS,
+  PRESENCE_ALLOWED_ORDER_STATUSES,
+  nextPresenceActions,
   type CustomerPresence,
 } from "@/domains/orders/customer-presence";
 import { customerStatusCopy } from "@/domains/orders/state-machine";
@@ -109,7 +111,16 @@ export function OrderTracker({
         )
       : null;
 
-  const showPresenceActions = order.status === "READY";
+  const presenceAllowed = (
+    PRESENCE_ALLOWED_ORDER_STATUSES as readonly string[]
+  ).includes(order.status);
+  const availablePresenceActions = presenceAllowed
+    ? nextPresenceActions(presence).filter((action) =>
+        // Keep "تم الاستلام" only once kitchen marks READY
+        action === "claimed_received" ? order.status === "READY" : true,
+      )
+    : [];
+  const showPresenceActions = availablePresenceActions.length > 0;
   const showLocationHelp =
     order.location_help_requested &&
     (presence === "outside" || order.status === "CUSTOMER_ARRIVED");
@@ -117,6 +128,8 @@ export function OrderTracker({
   const setPresence = (
     next: "on_the_way" | "outside" | "claimed_received",
   ) => {
+    if (pending) return;
+    if (!availablePresenceActions.includes(next)) return;
     setError(null);
     startTransition(async () => {
       const result = await customerPresenceAction({
@@ -175,9 +188,14 @@ export function OrderTracker({
             الوقت المتوقع: {estimateText}
           </p>
         )}
-        {presence !== "none" && order.status === "READY" && (
+        {presenceAllowed && (
           <p className="mt-4 text-sm font-medium text-[var(--success)]">
-            حدّثت حالتك: {CUSTOMER_PRESENCE_LABELS[presence]}
+            موقعك: {CUSTOMER_PRESENCE_LABELS[presence]}
+          </p>
+        )}
+        {order.payment_method === "CASH_ON_DELIVERY" && (
+          <p className="mt-2 text-sm text-[var(--ink-muted)]">
+            طريقة الدفع: عند الاستلام
           </p>
         )}
       </section>
@@ -199,36 +217,42 @@ export function OrderTracker({
           <p className="text-center text-sm text-[var(--ink-muted)]">
             وين وصلت؟
           </p>
-          <Button
-            type="button"
-            size="lg"
-            variant={presence === "on_the_way" ? "primary" : "secondary"}
-            className="w-full"
-            disabled={pending}
-            onClick={() => setPresence("on_the_way")}
-          >
-            بالطريق
-          </Button>
-          <Button
-            type="button"
-            size="lg"
-            variant={presence === "outside" ? "primary" : "secondary"}
-            className="w-full"
-            disabled={pending}
-            onClick={() => setPresence("outside")}
-          >
-            أنا برا
-          </Button>
-          <Button
-            type="button"
-            size="lg"
-            variant={presence === "claimed_received" ? "primary" : "secondary"}
-            className="w-full"
-            disabled={pending}
-            onClick={() => setPresence("claimed_received")}
-          >
-            تم الاستلام
-          </Button>
+          {availablePresenceActions.includes("on_the_way") ? (
+            <Button
+              type="button"
+              size="lg"
+              variant="secondary"
+              className="w-full"
+              disabled={pending}
+              onClick={() => setPresence("on_the_way")}
+            >
+              أنا بالطريق
+            </Button>
+          ) : null}
+          {availablePresenceActions.includes("outside") ? (
+            <Button
+              type="button"
+              size="lg"
+              variant="primary"
+              className="w-full"
+              disabled={pending}
+              onClick={() => setPresence("outside")}
+            >
+              أنا برا
+            </Button>
+          ) : null}
+          {availablePresenceActions.includes("claimed_received") ? (
+            <Button
+              type="button"
+              size="lg"
+              variant="secondary"
+              className="w-full"
+              disabled={pending}
+              onClick={() => setPresence("claimed_received")}
+            >
+              تم الاستلام
+            </Button>
+          ) : null}
           {presence === "outside" && (
             <p className="text-center text-sm text-[var(--accent)]">
               شغّل الفلشر عشان الموظف يلقاك أسرع

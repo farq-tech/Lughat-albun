@@ -37,6 +37,7 @@ type OrderDetail = {
     service_fee_minor: number;
     total_minor: number;
     payment_status: string;
+    payment_method?: string | null;
     created_at: string;
     paid_at: string | null;
     customer_arrived_at: string | null;
@@ -154,7 +155,11 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
           </div>
           <div className="text-left">
             <p className="text-xl font-bold">{formatSar(order.total_minor)}</p>
-            {order.payment_status === "PAID" ? (
+            {order.payment_method === "CASH_ON_DELIVERY" ? (
+              <span className="text-xs font-bold text-amber-800">
+                دفع عند الاستلام
+              </span>
+            ) : order.payment_status === "PAID" ? (
               <span className="text-xs text-green-700">مدفوع</span>
             ) : null}
           </div>

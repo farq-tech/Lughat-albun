@@ -64,61 +64,25 @@ describe("order kitchen state machine", () => {
   });
 });
 
-describe("customer presence after READY", () => {
-  it("blocks arrival signals before READY", () => {
-    for (const status of ["PAID", "ACCEPTED", "PREPARING"] as const) {
-      expect(
-        canUpdateCustomerPresence({
-          orderStatus: status,
-          current: "none",
-          next: "on_the_way",
-        }).ok,
-      ).toBe(false);
-      expect(
-        canUpdateCustomerPresence({
-          orderStatus: status,
-          current: "none",
-          next: "outside",
-        }).ok,
-      ).toBe(false);
-      expect(
-        canUpdateCustomerPresence({
-          orderStatus: status,
-          current: "none",
-          next: "claimed_received",
-        }).ok,
-      ).toBe(false);
-    }
-  });
-
-  it("allows customer to set بالطريق when READY", () => {
+describe("customer presence after order placement", () => {
+  it("allows arrival signals once the order is confirmed (PAID+)", () => {
     expect(
       canUpdateCustomerPresence({
-        orderStatus: "READY",
+        orderStatus: "PAID",
         current: "none",
         next: "on_the_way",
-      }),
-    ).toEqual({ ok: true });
+      }).ok,
+    ).toBe(true);
   });
 
-  it("allows customer to set أنا برا when READY", () => {
+  it("blocks arrival signals before confirmation", () => {
     expect(
       canUpdateCustomerPresence({
-        orderStatus: "READY",
-        current: "on_the_way",
-        next: "outside",
-      }),
-    ).toEqual({ ok: true });
-  });
-
-  it("allows customer to set تم الاستلام when READY", () => {
-    expect(
-      canUpdateCustomerPresence({
-        orderStatus: "READY",
-        current: "outside",
-        next: "claimed_received",
-      }),
-    ).toEqual({ ok: true });
+        orderStatus: "PENDING_PAYMENT",
+        current: "none",
+        next: "on_the_way",
+      }).ok,
+    ).toBe(false);
   });
 
   it("blocks presence updates after COMPLETED", () => {
@@ -129,15 +93,5 @@ describe("customer presence after READY", () => {
         next: "outside",
       }),
     ).toEqual({ ok: false, code: "ORDER_COMPLETED" });
-  });
-
-  it("treats same presence as idempotent", () => {
-    expect(
-      canUpdateCustomerPresence({
-        orderStatus: "READY",
-        current: "on_the_way",
-        next: "on_the_way",
-      }),
-    ).toEqual({ ok: true, idempotent: true });
   });
 });

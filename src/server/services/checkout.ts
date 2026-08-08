@@ -8,7 +8,10 @@ import {
 } from "@/lib/auth/customer-token";
 import { log, newRequestId } from "@/lib/logging";
 import { rateLimit } from "@/lib/rate-limit";
-import type { CheckoutInput } from "@/lib/validation/checkout";
+import {
+  toDbPaymentMethod,
+  type CheckoutInput,
+} from "@/lib/validation/checkout";
 import { createServiceClient } from "@/lib/supabase/server";
 import { buildPricingCatalog } from "./menu";
 import { getStoreAvailability } from "./store";
@@ -220,6 +223,9 @@ export async function createCheckoutAndPay(input: {
       currency: priced.totals.currency,
       source: input.checkout.source,
       payment_status: "PENDING",
+      payment_method: toDbPaymentMethod(
+        input.checkout.paymentMethod ?? "apple_pay",
+      ),
       estimated_prep_min: estimate.min,
       estimated_prep_max: estimate.max,
       idempotency_key: input.checkout.idempotencyKey,
@@ -305,21 +311,90 @@ export async function createCheckoutAndPay(input: {
   });
 
   const paymentIdempotency = `pay_${input.checkout.idempotencyKey}`;
+  const dbPaymentMethod = toDbPaymentMethod(
+    input.checkout.paymentMethod ?? "apple_pay",
+  );
+  const isCashOnDelivery = dbPaymentMethod === "CASH_ON_DELIVERY";
+
   const { data: existingPayment } = await supabase
     .from("payments")
     .select("*")
     .eq("idempotency_key", paymentIdempotency)
     .maybeSingle();
 
-  if (existingPayment?.status === "PAID") {
+  if (
+    existingPayment?.status === "PAID" ||
+    (isCashOnDelivery &&
+      existingPayment?.provider === "cash_on_delivery" &&
+      order.status !== "PENDING_PAYMENT")
+  ) {
     return {
       replay: true as const,
       orderId: order.id,
       publicOrderNumber: order.public_order_number,
       accessToken,
-      paymentStatus: "PAID" as const,
+      paymentStatus: isCashOnDelivery ? "COD_CONFIRMED" : "PAID",
+      paymentMethod: dbPaymentMethod,
       redirectUrl: null,
       anonymousToken,
+    };
+  }
+
+  if (isCashOnDelivery) {
+    const providerPaymentId = `cod_${order.id}`;
+    const { error: paymentError } = await supabase.from("payments").upsert(
+      {
+        order_id: order.id,
+        provider: "cash_on_delivery",
+        provider_payment_id: providerPaymentId,
+        status: "PENDING",
+        amount_minor: order.total_minor,
+        currency: order.currency,
+        idempotency_key: paymentIdempotency,
+        raw_safe_metadata: { method: "CASH_ON_DELIVERY" },
+        verified_at: null,
+      },
+      { onConflict: "idempotency_key" },
+    );
+
+    if (paymentError) {
+      log({
+        requestId,
+        orderId: order.id,
+        event: "cod_payment_row_failed",
+        level: "error",
+        error: paymentError.message,
+      });
+      throw new DomainError("ORDER_CREATE_FAILED", "صار خطأ، حاول مرة ثانية");
+    }
+
+    await markOrderPaid({
+      orderId: order.id,
+      expectedStatus: "PENDING_PAYMENT",
+      providerPaymentId,
+      actorType: "SYSTEM",
+      eventType: "COD_CONFIRMED",
+      markPaymentPaid: false,
+    });
+
+    log({
+      requestId,
+      orderId: order.id,
+      publicOrderNumber: order.public_order_number,
+      event: "checkout_cod_confirmed",
+    });
+
+    return {
+      replay: false as const,
+      orderId: order.id,
+      publicOrderNumber: order.public_order_number,
+      accessToken,
+      paymentStatus: "COD_CONFIRMED" as const,
+      paymentMethod: dbPaymentMethod,
+      redirectUrl: null,
+      anonymousToken,
+      estimatedPrepMin: estimate.min,
+      estimatedPrepMax: estimate.max,
     };
   }
 
@@ -345,7 +420,10 @@ export async function createCheckoutAndPay(input: {
         amount_minor: order.total_minor,
         currency: order.currency,
         idempotency_key: paymentIdempotency,
-        raw_safe_metadata: { redirectUrl: paymentResult.redirectUrl },
+        raw_safe_metadata: {
+          redirectUrl: paymentResult.redirectUrl,
+          method: dbPaymentMethod,
+        },
         verified_at:
           paymentResult.status === "PAID" ? new Date().toISOString() : null,
       },
@@ -392,6 +470,7 @@ export async function createCheckoutAndPay(input: {
     publicOrderNumber: order.public_order_number,
     accessToken,
     paymentStatus: paymentResult.status,
+    paymentMethod: dbPaymentMethod,
     redirectUrl: paymentResult.redirectUrl ?? null,
     anonymousToken,
     estimatedPrepMin: estimate.min,
@@ -404,8 +483,11 @@ export async function markOrderPaid(input: {
   expectedStatus: "PENDING_PAYMENT";
   providerPaymentId: string;
   actorType: "PAYMENT_PROVIDER" | "SYSTEM";
+  eventType?: string;
+  markPaymentPaid?: boolean;
 }) {
   const supabase = createServiceClient();
+  const markPaymentPaid = input.markPaymentPaid !== false;
 
   // Idempotent: already paid
   const { data: current } = await supabase
@@ -433,7 +515,7 @@ export async function markOrderPaid(input: {
     p_order_id: input.orderId,
     p_from_status: "PENDING_PAYMENT",
     p_to_status: "PAID",
-    p_event_type: "PAYMENT_CONFIRMED",
+    p_event_type: input.eventType ?? "PAYMENT_CONFIRMED",
     p_actor_type: input.actorType,
     p_actor_id: null,
     p_metadata: { providerPaymentId: input.providerPaymentId },
@@ -446,14 +528,16 @@ export async function markOrderPaid(input: {
     throw new DomainError("TRANSITION_FAILED", "فشل تأكيد الدفع");
   }
 
-  await supabase
-    .from("payments")
-    .update({
-      status: "PAID",
-      verified_at: new Date().toISOString(),
-    })
-    .eq("order_id", input.orderId)
-    .eq("provider_payment_id", input.providerPaymentId);
+  if (markPaymentPaid) {
+    await supabase
+      .from("payments")
+      .update({
+        status: "PAID",
+        verified_at: new Date().toISOString(),
+      })
+      .eq("order_id", input.orderId)
+      .eq("provider_payment_id", input.providerPaymentId);
+  }
 
   return { ok: true as const, order: data, idempotent: false };
 }

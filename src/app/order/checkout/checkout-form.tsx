@@ -22,15 +22,29 @@ type SavedVehicle = {
   plate_hint: string | null;
 };
 
-type PaymentMethod = "apple_pay" | "mada" | "visa" | "mastercard";
+type PaymentMethod =
+  | "apple_pay"
+  | "mada"
+  | "visa"
+  | "mastercard"
+  | "cash_on_delivery";
 
-const PAYMENT_OPTIONS: { id: PaymentMethod; label: string; preferred?: boolean }[] =
-  [
-    { id: "apple_pay", label: "Apple Pay", preferred: true },
-    { id: "mada", label: "مدى" },
-    { id: "visa", label: "Visa" },
-    { id: "mastercard", label: "Mastercard" },
-  ];
+const PAYMENT_OPTIONS: {
+  id: PaymentMethod;
+  label: string;
+  preferred?: boolean;
+  hint?: string;
+}[] = [
+  { id: "apple_pay", label: "Apple Pay", preferred: true },
+  { id: "mada", label: "مدى" },
+  { id: "visa", label: "Visa" },
+  { id: "mastercard", label: "Mastercard" },
+  {
+    id: "cash_on_delivery",
+    label: "الدفع عند الاستلام",
+    hint: "ادفع كاش للموظف عند تسليم الطلب",
+  },
+];
 
 type CheckoutFormProps = {
   source: OrderSource;
@@ -103,7 +117,9 @@ export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
         clientTotalMinor: displayTotalMinor > 0 ? displayTotalMinor : undefined,
         source,
         idempotencyKey,
-        paymentSimulate: "success",
+        paymentMethod,
+        paymentSimulate:
+          paymentMethod === "cash_on_delivery" ? undefined : "success",
       });
 
       if (!result.ok) {
@@ -259,11 +275,18 @@ export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
                   : "border-[var(--line)] bg-[var(--surface-2)]/40"
               }`}
             >
-              <span className="flex items-center gap-2">
-                {opt.label}
-                {opt.preferred && (
-                  <span className="text-xs text-[var(--accent)]">مفضّل</span>
-                )}
+              <span className="flex flex-col gap-0.5">
+                <span className="flex items-center gap-2">
+                  {opt.label}
+                  {opt.preferred && (
+                    <span className="text-xs text-[var(--accent)]">مفضّل</span>
+                  )}
+                </span>
+                {opt.hint ? (
+                  <span className="text-xs text-[var(--ink-muted)]">
+                    {opt.hint}
+                  </span>
+                ) : null}
               </span>
               <input
                 type="radio"
@@ -277,7 +300,9 @@ export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
           ))}
         </div>
         <p className="text-xs text-[var(--ink-muted)]">
-          الدفع تجريبي حاليًا — ما راح ينخصم منك شيء
+          {paymentMethod === "cash_on_delivery"
+            ? "بتدفع للموظف عند الاستلام — بدون دفع إلكتروني الآن"
+            : "الدفع الإلكتروني تجريبي حاليًا — ما راح ينخصم منك شيء"}
         </p>
       </section>
 
@@ -300,7 +325,13 @@ export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
       )}
 
       <Button type="submit" size="lg" className="w-full" disabled={pending}>
-        {pending ? "جاري الدفع..." : "ادفع واطلب"}
+        {pending
+          ? paymentMethod === "cash_on_delivery"
+            ? "جاري تأكيد الطلب..."
+            : "جاري الدفع..."
+          : paymentMethod === "cash_on_delivery"
+            ? "أكد الطلب — الدفع عند الاستلام"
+            : "ادفع واطلب"}
       </Button>
     </form>
   );

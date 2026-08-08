@@ -20,6 +20,14 @@ export type PaymentStatus =
   | "CANCELLED"
   | "REFUNDED";
 
+export type PaymentMethod =
+  | "ELECTRONIC"
+  | "APPLE_PAY"
+  | "MADA"
+  | "VISA"
+  | "MASTERCARD"
+  | "CASH_ON_DELIVERY";
+
 export type ActorType = "CUSTOMER" | "STAFF" | "SYSTEM" | "PAYMENT_PROVIDER";
 export type OrderSource = "qr" | "link" | "repeat" | "admin";
 
@@ -164,6 +172,7 @@ export interface OrderRecord {
   currency: string;
   source: OrderSource;
   payment_status: PaymentStatus;
+  payment_method?: PaymentMethod | null;
   estimated_prep_min: number | null;
   estimated_prep_max: number | null;
   created_at: string;
