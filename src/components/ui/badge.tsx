@@ -63,22 +63,24 @@ export function PaymentBadge({
   paymentMethod,
   paymentStatus,
   className,
+  labels,
 }: {
   paymentMethod?: PaymentMethod | string | null;
   paymentStatus?: string | null;
   className?: string;
+  labels?: { cod?: string; paid?: string };
 }) {
   if (paymentMethod === "CASH_ON_DELIVERY") {
     return (
       <Badge tone="cod" dot="cod" className={className}>
-        الدفع عند الاستلام
+        {labels?.cod ?? "الدفع عند الاستلام"}
       </Badge>
     );
   }
   if (paymentStatus === "PAID" || paymentMethod) {
     return (
       <Badge tone="success" className={className}>
-        مدفوع
+        {labels?.paid ?? "مدفوع"}
       </Badge>
     );
   }
@@ -88,11 +90,13 @@ export function PaymentBadge({
 export function ArrivalBadge({
   presence,
   className,
+  label: labelOverride,
 }: {
   presence: CustomerPresence;
   className?: string;
+  label?: string;
 }) {
-  const label = CUSTOMER_PRESENCE_LABELS[presence];
+  const label = labelOverride ?? CUSTOMER_PRESENCE_LABELS[presence];
   if (presence === "outside" || presence === "claimed_received") {
     return (
       <Badge tone="outside" dot="accent" className={cn("font-semibold", className)}>
@@ -117,11 +121,13 @@ export function ArrivalBadge({
 export function KitchenBadge({
   status,
   className,
+  label: labelOverride,
 }: {
   status: OrderStatus;
   className?: string;
+  label?: string;
 }) {
-  const label = staffStatusLabel(status);
+  const label = labelOverride ?? staffStatusLabel(status);
   if (status === "READY") {
     return (
       <Badge tone="ready" className={className}>

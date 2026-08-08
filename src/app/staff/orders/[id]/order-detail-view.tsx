@@ -3,11 +3,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { LanguageSwitcher } from "@/components/staff/language-switcher";
 import { ArrivalBadge, KitchenBadge, PaymentBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatSar } from "@/lib/money";
 import type { CustomerPresence } from "@/domains/orders/customer-presence";
 import { staffPrimaryAction } from "@/domains/orders/state-machine";
+import {
+  actionLabelForNext,
+  presenceLabel,
+  staffErrorMessage,
+  statusLabel,
+  useStaffI18n,
+} from "@/lib/staff-i18n";
+import { formatSar } from "@/lib/money";
 import {
   staffCannotLocateAction,
   staffTransitionAction,
@@ -61,22 +69,6 @@ type OrderDetail = {
   }[];
 };
 
-const EVENT_LABELS: Record<string, string> = {
-  PAYMENT_CONFIRMED: "تأكيد الدفع",
-  ACCEPTED: "قبول الطلب",
-  PREPARING: "جاري التجهيز",
-  READY: "الطلب جاهز",
-  CUSTOMER_ARRIVED: "وصول العميل",
-  OUT_FOR_DELIVERY: "خرج للعميل",
-  DELIVERED: "تم تسليم الطلب",
-  CUSTOMER_ON_THE_WAY: "العميل بالطريق",
-  CUSTOMER_OUTSIDE: "العميل برا",
-  CUSTOMER_CLAIMED_RECEIVED: "العميل: تم الاستلام",
-  LOCATION_HELP_REQUESTED: "طلب مساعدة في الموقع",
-  CANCELLED: "إلغاء",
-  REFUNDED: "استرجاع",
-};
-
 function normalizePresence(order: OrderDetail["order"]): CustomerPresence {
   const value = order.customer_presence;
   if (
@@ -95,6 +87,7 @@ function normalizePresence(order: OrderDetail["order"]): CustomerPresence {
 
 export function OrderDetailView({ data }: { data: OrderDetail }) {
   const router = useRouter();
+  const { t, timeLocale } = useStaffI18n();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const { order, items, events } = data;
@@ -118,7 +111,7 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
     if (result.ok) {
       router.refresh();
     } else {
-      setMessage(result.message);
+      setMessage(staffErrorMessage(result.code, result.message, t.errors));
     }
   }
 
@@ -130,18 +123,21 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
     if (result.ok) {
       router.refresh();
     } else {
-      setMessage(result.message);
+      setMessage(staffErrorMessage(result.code, result.message, t.errors));
     }
   }
 
   return (
     <div className="mx-auto max-w-2xl p-4 pb-10">
-      <Link
-        href="/staff"
-        className="mb-4 inline-block text-sm text-[var(--accent)] hover:underline"
-      >
-        ← رجوع للطابور
-      </Link>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <Link
+          href="/staff"
+          className="inline-block text-sm text-[var(--accent)] hover:underline"
+        >
+          ← {t.actions.backToQueue}
+        </Link>
+        <LanguageSwitcher compact />
+      </div>
 
       <header className="ui-panel mb-6 p-5">
         <div className="flex items-start justify-between gap-4">
@@ -150,8 +146,14 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
               #{order.public_order_number}
             </h1>
             <div className="mt-2 flex flex-wrap gap-2">
-              <KitchenBadge status={order.status} />
-              <ArrivalBadge presence={presence} />
+              <KitchenBadge
+                status={order.status}
+                label={statusLabel(order.status, t.status)}
+              />
+              <ArrivalBadge
+                presence={presence}
+                label={presenceLabel(presence, t.presence)}
+              />
             </div>
           </div>
           <div className="flex flex-col items-end gap-2 text-left">
@@ -159,43 +161,44 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
             <PaymentBadge
               paymentMethod={order.payment_method}
               paymentStatus={order.payment_status}
+              labels={t.payment}
             />
           </div>
         </div>
 
         {presence === "outside" && order.flasher_confirmed ? (
           <p className="mt-4 text-sm font-medium text-[var(--accent)]">
-            الفلشر شغّال
+            {t.detail.flasherOn}
           </p>
         ) : null}
 
         <dl className="mt-4 grid gap-2 text-sm">
-          <div className="flex justify-between">
-            <dt className="text-[var(--ink-muted)]">السيارة</dt>
-            <dd>
+          <div className="flex justify-between gap-3">
+            <dt className="text-[var(--ink-muted)]">{t.detail.car}</dt>
+            <dd className="text-end">
               {order.car_make_model_snapshot ?? "—"}
               {order.car_color_snapshot ? ` · ${order.car_color_snapshot}` : ""}
             </dd>
           </div>
           {order.plate_hint_snapshot ? (
-            <div className="flex justify-between">
-              <dt className="text-[var(--ink-muted)]">اللوحة</dt>
+            <div className="flex justify-between gap-3">
+              <dt className="text-[var(--ink-muted)]">{t.detail.plate}</dt>
               <dd>{order.plate_hint_snapshot}</dd>
             </div>
           ) : null}
           {order.location_hint ? (
-            <div className="flex justify-between">
-              <dt className="text-[var(--ink-muted)]">ملاحظة موقع</dt>
-              <dd>{order.location_hint}</dd>
+            <div className="flex justify-between gap-3">
+              <dt className="text-[var(--ink-muted)]">{t.detail.locationNote}</dt>
+              <dd className="text-end">{order.location_hint}</dd>
             </div>
           ) : null}
-          <div className="flex justify-between">
-            <dt className="text-[var(--ink-muted)]">الجوال</dt>
+          <div className="flex justify-between gap-3">
+            <dt className="text-[var(--ink-muted)]">{t.detail.phone}</dt>
             <dd dir="ltr">{order.phone}</dd>
           </div>
           {order.customer_name ? (
-            <div className="flex justify-between">
-              <dt className="text-[var(--ink-muted)]">الاسم</dt>
+            <div className="flex justify-between gap-3">
+              <dt className="text-[var(--ink-muted)]">{t.detail.name}</dt>
               <dd>{order.customer_name}</dd>
             </div>
           ) : null}
@@ -203,11 +206,11 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
       </header>
 
       <section className="ui-panel mb-6 p-5">
-        <h2 className="mb-3 text-lg font-bold">الأصناف</h2>
+        <h2 className="mb-3 text-lg font-bold">{t.detail.items}</h2>
         <ul className="space-y-3">
           {items.map((item) => (
             <li key={item.id} className="border-b border-[var(--line)] pb-3 last:border-0">
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-3">
                 <span>
                   {item.quantity}× {item.product_name_snapshot}
                 </span>
@@ -227,16 +230,16 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
         </ul>
         <div className="mt-4 space-y-1 border-t border-[var(--line)] pt-3 text-sm">
           <div className="flex justify-between">
-            <span>المجموع</span>
+            <span>{t.detail.subtotal}</span>
             <span>{formatSar(order.subtotal_minor)}</span>
           </div>
           <div className="flex justify-between text-[var(--ink-muted)]">
-            <span>الضريبة</span>
+            <span>{t.detail.tax}</span>
             <span>{formatSar(order.tax_amount_minor)}</span>
           </div>
           {order.service_fee_minor > 0 ? (
             <div className="flex justify-between text-[var(--ink-muted)]">
-              <span>رسوم الخدمة</span>
+              <span>{t.detail.serviceFee}</span>
               <span>{formatSar(order.service_fee_minor)}</span>
             </div>
           ) : null}
@@ -244,16 +247,19 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
       </section>
 
       <section className="ui-panel mb-6 p-5">
-        <h2 className="mb-3 text-lg font-bold">السجل</h2>
+        <h2 className="mb-3 text-lg font-bold">{t.detail.history}</h2>
         <ol className="space-y-2">
           {events.map((ev) => (
             <li
               key={ev.id}
-              className="flex justify-between gap-4 border-r-2 border-[var(--accent)] pr-3 text-sm"
+              className="flex justify-between gap-4 border-s-2 border-[var(--accent)] ps-3 text-sm"
             >
-              <span>{EVENT_LABELS[ev.event_type] ?? ev.event_type}</span>
+              <span>
+                {t.events[ev.event_type as keyof typeof t.events] ??
+                  ev.event_type}
+              </span>
               <time className="shrink-0 text-[var(--ink-muted)]" dir="ltr">
-                {new Date(ev.created_at).toLocaleTimeString("ar-SA", {
+                {new Date(ev.created_at).toLocaleTimeString(timeLocale, {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}
@@ -272,7 +278,7 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
       <div className="flex flex-col gap-3">
         {action ? (
           <Button disabled={busy} onClick={() => void transition()}>
-            {busy ? "…" : action.label}
+            {busy ? "…" : actionLabelForNext(action.next, t.actions)}
           </Button>
         ) : null}
 
@@ -285,8 +291,8 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
             onClick={() => void cannotLocate()}
           >
             {order.location_help_requested
-              ? "تم طلب المساعدة"
-              : "ما لقيت السيارة"}
+              ? t.actions.helpRequested
+              : t.actions.cannotLocate}
           </Button>
         ) : null}
       </div>
