@@ -141,14 +141,14 @@ export function customerStatusCopy(status: OrderStatus): {
     case "PENDING_PAYMENT":
       return { title: "بانتظار الدفع", body: "كمّل الدفع عشان نبدأ نجهز طلبك." };
     case "PAID":
-      return { title: "طلبك وصلنا", body: "بانتظار قبول الطلب من المحل." };
+      return { title: "طلبك وصلنا", body: "بانتظار قبول المحل" };
     case "ACCEPTED":
     case "PREPARING":
       return { title: "جاري التجهيز", body: "قاعدين نجهّز طلبك الحين." };
     case "READY":
       return {
         title: "جاهز",
-        body: "طلبك جاهز. حدّثنا وين وصلت.",
+        body: "طلبك جاهز للاستلام",
       };
     case "CUSTOMER_ARRIVED":
       return { title: "عرفناك", body: "موظفنا جايك." };

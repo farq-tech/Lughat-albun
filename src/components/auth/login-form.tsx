@@ -41,20 +41,20 @@ export function LoginForm({ redirectTo, title, subtitle }: LoginFormProps) {
   }
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className="w-full max-w-sm space-y-4 rounded-2xl border border-[var(--line,#e5e5e5)] bg-[var(--surface,#fff)] p-6 shadow-sm"
-    >
+    <form onSubmit={onSubmit} className="ui-panel w-full max-w-sm space-y-4 p-6">
       <div className="space-y-1 text-center">
-        <h1 className="text-2xl font-bold text-[var(--ink,#171717)]">{title}</h1>
+        <p className="font-display text-sm text-[var(--ink-muted)]">لغة البن</p>
+        <h1 className="font-display text-2xl font-bold text-[var(--ink)]">
+          {title}
+        </h1>
         {subtitle ? (
-          <p className="text-sm text-[var(--ink-muted,#666)]">{subtitle}</p>
+          <p className="text-sm text-[var(--ink-muted)]">{subtitle}</p>
         ) : null}
       </div>
 
-      <label className="block space-y-1">
-        <span className="text-sm font-medium text-[var(--ink,#171717)]">
-          البريد الإلكتروني
+      <label className="block space-y-1.5">
+        <span className="text-sm font-medium text-[var(--ink)]">
+          البريد / اسم المستخدم
         </span>
         <input
           type="email"
@@ -62,34 +62,35 @@ export function LoginForm({ redirectTo, title, subtitle }: LoginFormProps) {
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-xl border border-[var(--line,#e5e5e5)] bg-[var(--surface-2,#fafafa)] px-4 py-3 text-[var(--ink,#171717)] outline-none focus:border-[var(--accent,#8b4513)] focus:ring-2 focus:ring-[var(--accent,#8b4513)]/20"
+          className="ui-input"
           dir="ltr"
         />
       </label>
 
-      <label className="block space-y-1">
-        <span className="text-sm font-medium text-[var(--ink,#171717)]">
-          كلمة المرور
-        </span>
+      <label className="block space-y-1.5">
+        <span className="text-sm font-medium text-[var(--ink)]">كلمة المرور</span>
         <input
           type="password"
           required
           autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-xl border border-[var(--line,#e5e5e5)] bg-[var(--surface-2,#fafafa)] px-4 py-3 text-[var(--ink,#171717)] outline-none focus:border-[var(--accent,#8b4513)] focus:ring-2 focus:ring-[var(--accent,#8b4513)]/20"
+          className="ui-input"
           dir="ltr"
         />
       </label>
 
       {error ? (
-        <p className="rounded-lg bg-[var(--danger,#dc2626)]/10 px-3 py-2 text-sm text-[var(--danger,#dc2626)]">
+        <p
+          className="rounded-xl bg-[var(--danger)]/10 px-3 py-2 text-sm text-[var(--danger)]"
+          role="alert"
+        >
           {error}
         </p>
       ) : null}
 
-      <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? "جاري الدخول…" : "تسجيل الدخول"}
+      <Button type="submit" className="w-full" size="lg" disabled={loading}>
+        {loading ? "..." : "تسجيل الدخول"}
       </Button>
     </form>
   );

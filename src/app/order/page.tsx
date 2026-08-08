@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { getStoreAvailability } from "@/server/services/store";
 
@@ -7,16 +8,23 @@ type PageProps = {
 
 function BrandMark() {
   return (
-    <div className="flex flex-col items-center gap-1 animate-fade-up">
-      <span
-        className="font-display text-[2.75rem] leading-none tracking-tight text-[var(--ink)] sm:text-5xl"
-        aria-hidden
-      >
-        لغة البن
-      </span>
-      <span className="text-xs font-medium tracking-[0.2em] text-[var(--ink-muted)] uppercase">
-        Lughat Albun Café
-      </span>
+    <div className="flex flex-col items-center gap-4 animate-fade-up">
+      <Image
+        src="/brand/lughat-albun-logo-circle.png"
+        alt="لغة البن"
+        width={160}
+        height={160}
+        priority
+        className="size-36 rounded-full object-cover shadow-sm sm:size-40"
+      />
+      <div className="flex flex-col items-center gap-1">
+        <span className="font-display text-[2.75rem] leading-none tracking-tight text-[var(--ink)] sm:text-5xl">
+          لغة البن
+        </span>
+        <span className="text-xs font-semibold tracking-[0.22em] text-[var(--accent)] uppercase">
+          Lughat Al-Bun Café
+        </span>
+      </div>
     </div>
   );
 }
@@ -53,31 +61,29 @@ export default async function OrderLandingPage({ searchParams }: PageProps) {
   const menuHref = `/order/menu?source=${orderSource}`;
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-lg flex-col px-6 pb-10 pt-14">
+    <main className="mx-auto flex min-h-dvh max-w-lg flex-col px-7 pb-10 pt-12">
       <header className="flex flex-col items-center text-center">
         <BrandMark />
-        <p
-          className="mt-8 text-sm font-medium text-[var(--accent)] animate-fade-up stagger-1"
-          aria-live="polite"
-        >
-          {availability.message}
-        </p>
+        {!canOrder ? (
+          <p
+            className="mt-6 text-sm font-medium text-[var(--accent)] animate-fade-up stagger-1"
+            aria-live="polite"
+          >
+            {availability.message}
+          </p>
+        ) : null}
       </header>
 
-      <section className="mt-12 flex flex-1 flex-col items-center text-center animate-fade-up stagger-2">
+      <section className="mt-10 flex flex-1 flex-col items-center text-center animate-fade-up stagger-2">
         <h1 className="font-display text-3xl leading-snug text-[var(--ink)] sm:text-4xl">
-          قهوتك تجيك لسيارتك
+          قهوتك توصلك لسيارتك.
         </h1>
-        <p className="mt-4 max-w-xs text-base leading-relaxed text-[var(--ink-muted)]">
-          اطلب من مكانك وخلك بالسيارة
-        </p>
-
-        {store && (
+        {store ? (
           <p className="mt-6 text-sm text-[var(--ink-muted)]">{store.name_ar}</p>
-        )}
+        ) : null}
       </section>
 
-      <footer className="mt-auto space-y-4 pt-10 animate-fade-up stagger-3">
+      <footer className="mt-auto space-y-3 pt-10 animate-fade-up stagger-3">
         {canOrder ? (
           <Button asLink href={menuHref} size="lg" className="w-full">
             ابدأ الطلب
@@ -93,8 +99,8 @@ export default async function OrderLandingPage({ searchParams }: PageProps) {
           </>
         )}
 
-        <p className="text-center text-xs text-[var(--ink-muted)]">
-          🚗 استلام من السيارة فقط
+        <p className="text-center text-sm text-[var(--ink-muted)]">
+          طلب واستلام من السيارة
         </p>
       </footer>
     </main>

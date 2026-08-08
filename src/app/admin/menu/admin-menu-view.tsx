@@ -40,7 +40,7 @@ export function AdminMenuView({ categories, products }: AdminMenuViewProps) {
         ← رجوع
       </Link>
 
-      <h1 className="mb-6 text-2xl font-bold">المنيو</h1>
+      <h1 className="mb-6 font-display text-2xl font-bold">إدارة المنيو</h1>
 
       <div className="space-y-8">
         {byCategory.map(({ category, products: catProducts }) => (
@@ -61,11 +61,12 @@ export function AdminMenuView({ categories, products }: AdminMenuViewProps) {
                 {catProducts.map((product) => (
                   <li
                     key={product.id}
-                    className="flex items-center justify-between gap-4 rounded-xl border border-[var(--line)] bg-white px-4 py-3"
+                    className="ui-panel flex items-center justify-between gap-4 px-4 py-3"
                   >
                     <div>
                       <p className="font-medium">{product.name_ar}</p>
                       <p className="text-sm text-[var(--ink-muted)]">
+                        {product.name_en ? `${product.name_en} · ` : ""}
                         {formatSar(product.price_minor)}
                         {!product.is_active ? " · غير نشط" : ""}
                       </p>
@@ -76,8 +77,8 @@ export function AdminMenuView({ categories, products }: AdminMenuViewProps) {
                       onClick={() => void toggle(product)}
                       className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                         product.is_available
-                          ? "bg-green-100 text-green-800"
-                          : "bg-[var(--surface-2)] text-[var(--ink-muted)]"
+                          ? "bg-[var(--success)] text-white"
+                          : "bg-[var(--surface-3)] text-[var(--ink-muted)]"
                       } disabled:opacity-50`}
                     >
                       {busyId === product.id

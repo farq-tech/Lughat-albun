@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrivalBadge, KitchenBadge, PaymentBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatSar } from "@/lib/money";
 import { createClient } from "@/lib/supabase/client";
@@ -10,10 +11,7 @@ import {
   getStaffQueueAction,
   staffTransitionAction,
 } from "@/server/actions/staff";
-import {
-  CUSTOMER_PRESENCE_LABELS,
-  type CustomerPresence,
-} from "@/domains/orders/customer-presence";
+import type { CustomerPresence } from "@/domains/orders/customer-presence";
 import type { OrderStatus } from "@/types/database";
 import type { StaffQueueOrder } from "@/types/staff-queue";
 
@@ -236,8 +234,8 @@ export function StaffQueueView({ initialOrders }: StaffQueueViewProps) {
     <div className="mx-auto min-h-screen max-w-7xl p-4 pb-8">
       <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">طابور الطلبات</h1>
-          <p className="text-sm text-[var(--ink-muted,#6b5c4f)]">لغة البن</p>
+          <h1 className="font-display text-2xl font-bold">طابور الطلبات</h1>
+          <p className="text-sm text-[var(--ink-muted)]">لغة البن · مباشر</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -249,7 +247,7 @@ export function StaffQueueView({ initialOrders }: StaffQueueViewProps) {
                 : "border-[var(--line)] bg-[var(--surface-2)] text-[var(--ink-muted)]"
             }`}
           >
-            {soundEnabled ? "🔔 تنبيهات صوتية" : "🔕 تنبيهات صوتية"}
+            {soundEnabled ? "تنبيهات صوتية · مفعّلة" : "تنبيهات صوتية"}
           </button>
           <Button variant="ghost" size="sm" onClick={() => void refetch()}>
             تحديث
@@ -262,7 +260,7 @@ export function StaffQueueView({ initialOrders }: StaffQueueViewProps) {
           className="mb-4 rounded-xl bg-[var(--danger)]/10 px-4 py-3 text-sm text-[var(--danger)]"
           role="alert"
         >
-          {actionError}
+          تعذر تحديث حالة الطلب — {actionError}
         </p>
       ) : null}
 
@@ -270,19 +268,23 @@ export function StaffQueueView({ initialOrders }: StaffQueueViewProps) {
         {SECTIONS.map((section) => {
           const items = grouped.get(section.key) ?? [];
           const highlightReady = section.key === "ready";
+          const sampleStatus = section.statuses[0];
 
           return (
             <section
               key={section.key}
               className={`rounded-2xl border p-3 ${
                 highlightReady
-                  ? "border-[var(--accent)]/40 bg-[var(--accent)]/5"
-                  : "border-[var(--line)] bg-[var(--surface)]"
+                  ? "border-[var(--success)]/35 bg-[var(--success)]/5"
+                  : "border-[var(--line)] bg-[var(--surface-2)]/60"
               }`}
             >
-              <h2 className="mb-3 flex items-center justify-between text-lg font-bold">
-                {section.title}
-                <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-sm font-normal">
+              <h2 className="mb-3 flex items-center justify-between gap-2 text-lg font-bold">
+                <span className="flex items-center gap-2">
+                  {sampleStatus ? <KitchenBadge status={sampleStatus} /> : null}
+                  <span>{section.title}</span>
+                </span>
+                <span className="rounded-lg bg-[var(--surface-3)] px-2 py-0.5 text-sm font-normal text-[var(--ink-muted)]">
                   {items.length}
                 </span>
               </h2>
@@ -345,55 +347,46 @@ function OrderCard({
 
   return (
     <li
-      className={`rounded-xl border p-3 shadow-sm ${
+      className={`rounded-xl border bg-[var(--elevated)] p-3 ${
         priority
-          ? "animate-pulse border-[var(--danger)] bg-white"
-          : "border-[var(--line)] bg-white"
+          ? "border-[var(--accent)] shadow-[inset_-3px_0_0_0_var(--accent)]"
+          : "border-[var(--line)]"
       }`}
     >
       <Link href={`/staff/orders/${order.id}`} className="block">
         <div className="mb-2 flex items-start justify-between gap-2">
           <span className="text-xl font-bold">#{order.public_order_number}</span>
           <span className="text-xs text-[var(--ink-muted)]">
-            ⏱ {formatWait(waitMin)}
+            {formatWait(waitMin)}
           </span>
         </div>
 
-        {presence !== "none" ? (
-          <div
-            className={`mb-2 rounded-lg px-2 py-1 text-sm font-bold ${
-              priority
-                ? "bg-[var(--danger)]/10 text-[var(--danger)]"
-                : "bg-[var(--accent)]/10 text-[var(--accent)]"
-            }`}
-          >
-            العميل: {CUSTOMER_PRESENCE_LABELS[presence]}
-            {presenceSince > 0 ? ` — منذ ${formatWait(presenceSince)}` : ""}
-          </div>
-        ) : null}
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          <ArrivalBadge presence={presence} />
+          {presenceSince > 0 && presence !== "none" ? (
+            <span className="text-xs text-[var(--ink-muted)]">
+              منذ {formatWait(presenceSince)}
+            </span>
+          ) : null}
+        </div>
 
-        <p className="text-sm text-[var(--ink)]">
+        <p className="text-sm font-semibold text-[var(--ink)]">
           {order.car_make_model_snapshot ?? "—"}
           {order.car_color_snapshot ? ` · ${order.car_color_snapshot}` : ""}
         </p>
         {order.plate_hint_snapshot ? (
           <p className="text-xs text-[var(--ink-muted)]">
-            لوحة: {order.plate_hint_snapshot}
+            لوحة • {order.plate_hint_snapshot}
           </p>
         ) : null}
 
-        <div className="mt-2 flex flex-wrap gap-2 text-xs text-[var(--ink-muted)]">
-          <span>{order.itemCount} صنف</span>
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[var(--ink-muted)]">
+          <span>{order.itemCount} أصناف</span>
           <span>{formatSar(order.total_minor)}</span>
-          {order.payment_method === "CASH_ON_DELIVERY" ? (
-            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-900">
-              دفع عند الاستلام
-            </span>
-          ) : order.payment_status === "PAID" ? (
-            <span className="rounded bg-green-100 px-1.5 py-0.5 text-green-800">
-              مدفوع
-            </span>
-          ) : null}
+          <PaymentBadge
+            paymentMethod={order.payment_method}
+            paymentStatus={order.payment_status}
+          />
         </div>
       </Link>
 

@@ -8,13 +8,18 @@
   --surface: #f5ede4;
   --surface-2: #ede3d6;
   --surface-3: #e2d4c4;
+  --elevated: #ffffff;
   --line: rgba(28, 20, 16, 0.1);
   --danger: #9b2c2c;
   --success: #3d6b4f;
+  --cod-amber: #f59e0b;
   --parchment-from: #f7f0e6;
   --parchment-mid: #efe4d4;
   --parchment-to: #e4d5c0;
   --grain-opacity: 0.045;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
 }
 
 @theme inline {
@@ -131,4 +136,39 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+/* Shared parchment panel — prefer over raw white cards */
+.ui-panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--elevated) 72%, var(--surface-2));
+}
+
+.ui-panel-soft {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface-2) 80%, transparent);
+}
+
+.ui-input {
+  width: 100%;
+  min-height: 48px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--elevated) 70%, var(--surface));
+  padding: 0.75rem 1rem;
+  color: var(--ink);
+  transition: border-color 0.15s ease;
+}
+
+.ui-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.ui-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

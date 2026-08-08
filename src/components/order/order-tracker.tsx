@@ -19,6 +19,7 @@ import {
   customerPresenceAction,
   locationHintAction,
 } from "@/server/actions/orders";
+import { ArrivalBadge, PaymentBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { OrderRecord } from "@/types/database";
 
@@ -116,7 +117,6 @@ export function OrderTracker({
   ).includes(order.status);
   const availablePresenceActions = presenceAllowed
     ? nextPresenceActions(presence).filter((action) =>
-        // Keep "تم الاستلام" only once kitchen marks READY
         action === "claimed_received" ? order.status === "READY" : true,
       )
     : [];
@@ -167,61 +167,91 @@ export function OrderTracker({
       ? `${order.estimated_prep_min}–${order.estimated_prep_max} دقيقة`
       : null;
 
+  const isReady = order.status === "READY";
+  const isDelivered = order.status === "DELIVERED";
+
   return (
     <div className="mx-auto min-h-dvh max-w-lg px-5 pb-12 pt-10">
-      <header className="mb-8 text-center animate-fade-up">
-        <p className="font-display text-xl text-[var(--ink)]">لغة البن</p>
-        <p className="mt-2 text-sm text-[var(--ink-muted)]">
-          طلب #{order.public_order_number}
-        </p>
+      <header className="mb-8 animate-fade-up">
+        <p className="font-display text-lg text-[var(--ink-muted)]">لغة البن</p>
+        <h1 className="mt-1 font-display text-3xl text-[var(--ink)]">
+          طلبك #{order.public_order_number}
+        </h1>
       </header>
 
       <section
-        className={`rounded-3xl border border-[var(--line)] bg-[var(--surface-2)]/60 p-6 text-center animate-fade-up stagger-1 ${
-          order.status === "READY" ? "animate-pulse-soft" : ""
+        className={`ui-panel-soft space-y-2 p-5 animate-fade-up stagger-1 ${
+          isReady ? "animate-pulse-soft border-[var(--success)]/40" : ""
         }`}
       >
-        <h1 className="font-display text-2xl text-[var(--ink)]">{copy.title}</h1>
-        <p className="mt-3 text-[var(--ink-muted)]">{copy.body}</p>
-        {estimateText && order.status !== "DELIVERED" && (
-          <p className="mt-4 text-sm font-medium text-[var(--accent)]">
+        <p className="text-xs font-medium text-[var(--ink-muted)]">حالة المطبخ</p>
+        <h2
+          className={`font-display text-2xl ${
+            isReady || isDelivered
+              ? "text-[var(--success)]"
+              : "text-[var(--ink)]"
+          }`}
+        >
+          {copy.title}
+        </h2>
+        <p className="text-[var(--ink-muted)]">{copy.body}</p>
+        {estimateText && !isDelivered ? (
+          <p className="pt-1 text-sm font-medium text-[var(--accent)]">
             الوقت المتوقع: {estimateText}
           </p>
-        )}
-        {presenceAllowed && (
-          <p className="mt-4 text-sm font-medium text-[var(--success)]">
-            موقعك: {CUSTOMER_PRESENCE_LABELS[presence]}
-          </p>
-        )}
-        {order.payment_method === "CASH_ON_DELIVERY" && (
-          <p className="mt-2 text-sm text-[var(--ink-muted)]">
-            طريقة الدفع: عند الاستلام
-          </p>
-        )}
+        ) : null}
       </section>
 
-      {vehicleLabel && (
-        <section className="mt-6 rounded-2xl border border-[var(--line)] bg-white/50 p-4 animate-fade-up stagger-2">
-          <p className="text-sm text-[var(--ink-muted)]">سيارتك</p>
-          <p className="mt-1 font-semibold">{vehicleLabel}</p>
-          {order.plate_hint_snapshot && (
-            <p className="mt-1 text-sm text-[var(--ink-muted)]">
-              آخر {order.plate_hint_snapshot} من اللوحة
+      {presenceAllowed ? (
+        <section
+          className={`ui-panel mt-4 space-y-3 p-5 animate-fade-up stagger-2 ${
+            presence === "outside"
+              ? "border-[var(--accent)] shadow-[inset_-3px_0_0_0_var(--accent)]"
+              : ""
+          }`}
+        >
+          <p className="text-xs font-medium text-[var(--ink-muted)]">وصولك</p>
+          <ArrivalBadge presence={presence} />
+          {presence === "outside" ? (
+            <p className="text-sm text-[var(--ink-muted)]">
+              شغّل الفلشر عشان الموظف يلقاك أسرع
             </p>
-          )}
+          ) : null}
+        </section>
+      ) : null}
+
+      {(vehicleLabel || order.payment_method) && (
+        <section className="ui-panel-soft mt-4 space-y-3 p-4 animate-fade-up stagger-2">
+          {vehicleLabel ? (
+            <div>
+              <p className="text-sm text-[var(--ink-muted)]">سيارتك</p>
+              <p className="mt-1 font-semibold">
+                {vehicleLabel}
+                {order.plate_hint_snapshot
+                  ? ` · لوحة • ${order.plate_hint_snapshot}`
+                  : ""}
+              </p>
+            </div>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <PaymentBadge
+              paymentMethod={order.payment_method}
+              paymentStatus={order.payment_status}
+            />
+            <span className="text-sm font-semibold" dir="ltr">
+              {formatSar(order.total_minor)}
+            </span>
+          </div>
         </section>
       )}
 
-      {showPresenceActions && (
+      {showPresenceActions ? (
         <div className="mt-8 space-y-3 animate-fade-up stagger-3">
-          <p className="text-center text-sm text-[var(--ink-muted)]">
-            وين وصلت؟
-          </p>
           {availablePresenceActions.includes("on_the_way") ? (
             <Button
               type="button"
               size="lg"
-              variant="secondary"
+              variant="primary"
               className="w-full"
               disabled={pending}
               onClick={() => setPresence("on_the_way")}
@@ -233,7 +263,11 @@ export function OrderTracker({
             <Button
               type="button"
               size="lg"
-              variant="primary"
+              variant={
+                availablePresenceActions.includes("on_the_way")
+                  ? "secondary"
+                  : "primary"
+              }
               className="w-full"
               disabled={pending}
               onClick={() => setPresence("outside")}
@@ -253,16 +287,17 @@ export function OrderTracker({
               تم الاستلام
             </Button>
           ) : null}
-          {presence === "outside" && (
-            <p className="text-center text-sm text-[var(--accent)]">
-              شغّل الفلشر عشان الموظف يلقاك أسرع
-            </p>
-          )}
         </div>
-      )}
+      ) : null}
 
-      {showLocationHelp && (
-        <section className="mt-8 space-y-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)]/50 p-5 animate-fade-up">
+      {isDelivered ? (
+        <p className="mt-8 text-center font-display text-2xl text-[var(--ink)] animate-fade-up">
+          بالعافية
+        </p>
+      ) : null}
+
+      {showLocationHelp ? (
+        <section className="ui-panel-soft mt-8 space-y-4 p-5 animate-fade-up">
           <div>
             <h2 className="font-semibold">ساعدنا نلقاك</h2>
             <p className="mt-1 text-sm text-[var(--ink-muted)]">
@@ -296,7 +331,7 @@ export function OrderTracker({
                   onChange={(e) => setCustomHint(e.target.value)}
                   placeholder="وصف مختصر..."
                   maxLength={120}
-                  className="min-w-0 flex-1 rounded-xl border border-[var(--line)] bg-white/70 px-3 py-2 text-sm"
+                  className="ui-input min-w-0 flex-1 text-sm"
                 />
                 <Button
                   type="button"
@@ -310,16 +345,16 @@ export function OrderTracker({
             </>
           )}
         </section>
-      )}
+      ) : null}
 
-      {error && (
+      {error ? (
         <p
           className="mt-6 rounded-xl bg-[var(--danger)]/10 px-4 py-3 text-sm text-[var(--danger)]"
           role="alert"
         >
           {error}
         </p>
-      )}
+      ) : null}
 
       <section className="mt-10 animate-fade-up">
         <h2 className="mb-3 text-sm font-semibold text-[var(--ink-muted)]">
@@ -329,7 +364,7 @@ export function OrderTracker({
           {data.items.map((item) => (
             <li
               key={item.id}
-              className="flex items-center justify-between rounded-xl border border-[var(--line)] bg-white/40 px-4 py-3 text-sm"
+              className="ui-panel flex items-center justify-between px-4 py-3 text-sm"
             >
               <span>
                 {item.quantity}× {item.product_name_snapshot}
@@ -343,6 +378,11 @@ export function OrderTracker({
         <p className="mt-3 text-left text-sm font-semibold" dir="ltr">
           {formatSar(order.total_minor)}
         </p>
+        {presenceAllowed ? (
+          <p className="mt-2 text-xs text-[var(--ink-muted)]">
+            الوصول: {CUSTOMER_PRESENCE_LABELS[presence]}
+          </p>
+        ) : null}
       </section>
     </div>
   );

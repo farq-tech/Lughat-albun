@@ -22,7 +22,7 @@ export default function AdminQrPage() {
     void QRCode.toDataURL(url, {
       width: 280,
       margin: 2,
-      color: { dark: "#1a120b", light: "#ffffff" },
+      color: { dark: "#1c1410", light: "#ffffff" },
     }).then(setQrDataUrl);
   }, []);
 
@@ -46,19 +46,19 @@ export default function AdminQrPage() {
 
       <div
         ref={printRef}
-        className="qr-print-sheet mx-auto flex flex-col items-center justify-center rounded-2xl border border-[var(--line)] bg-white p-10 text-center shadow-sm print:border-0 print:shadow-none"
+        className="qr-print-sheet mx-auto flex flex-col items-center justify-center rounded-2xl border border-[var(--line)] bg-[var(--elevated)] p-10 text-center shadow-sm print:border-0 print:shadow-none"
       >
-        <p className="text-4xl font-bold tracking-tight text-[var(--accent,#6f4e37)]">
+        <p className="font-display text-4xl font-bold tracking-tight text-[var(--ink)]">
           لغة البن
         </p>
-        <p className="mt-2 text-2xl font-semibold text-[var(--ink)]">
-          قهوتك تجيك
+        <p className="mt-3 text-2xl font-semibold text-[var(--ink)]">
+          اطلب من سيارتك
         </p>
-        <p className="mt-6 max-w-xs text-lg leading-relaxed text-[var(--ink-muted)]">
-          امسح — اطلب — خلك بسيارتك
+        <p className="mt-4 max-w-xs text-lg leading-relaxed text-[var(--ink-muted)]">
+          امسح الكود واطلب
         </p>
 
-        <div className="my-8 rounded-2xl border-4 border-[var(--accent,#6f4e37)] p-3">
+        <div className="my-8 rounded-2xl border-2 border-[var(--accent)] p-3">
           {qrDataUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -75,8 +75,8 @@ export default function AdminQrPage() {
           )}
         </div>
 
-        <p className="text-xl font-bold text-[var(--accent,#6f4e37)]">
-          وإحنا نجيك
+        <p className="text-lg font-medium text-[var(--accent)]">
+          قهوتك توصلك لسيارتك
         </p>
 
         <p className="mt-8 hidden text-xs text-[var(--ink-muted)] print:block" dir="ltr">

@@ -180,11 +180,11 @@ export function MenuView({ menu, source }: MenuViewProps) {
 
   return (
     <div className="mx-auto min-h-dvh max-w-lg pb-28">
-      <header className="sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--surface)]/90 px-5 py-4 backdrop-blur-md">
+      <header className="sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--parchment-from)]/90 px-5 py-4 backdrop-blur-md">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="font-display text-xl text-[var(--ink)]">لغة البن</p>
-            <p className="text-xs text-[var(--ink-muted)]">القائمة</p>
+            <p className="text-xs text-[var(--ink-muted)]">طلب من السيارة</p>
           </div>
           <Button
             variant="secondary"
@@ -236,18 +236,21 @@ export function MenuView({ menu, source }: MenuViewProps) {
       </div>
 
       {itemCount > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-lg animate-sticky-cart px-4 pb-4">
-          <Button
-            type="button"
-            size="lg"
-            className="w-full shadow-lg"
-            onClick={() => setCartOpen(true)}
-          >
-            <span>
-              عرض السلة — {formatSar(displayTotalMinor)}
-            </span>
-            <span className="text-xs font-normal opacity-80">(تقديري)</span>
-          </Button>
+        <div className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-lg animate-sticky-cart border-t border-[var(--line)] bg-[var(--elevated)]/95 px-5 pb-6 pt-3 backdrop-blur-md">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-[var(--ink-muted)]">{itemCount} أصناف</p>
+              <p className="text-lg font-bold">{formatSar(displayTotalMinor)}</p>
+            </div>
+            <Button
+              type="button"
+              size="lg"
+              className="min-w-[9.5rem]"
+              onClick={() => setCartOpen(true)}
+            >
+              إتمام الطلب
+            </Button>
+          </div>
         </div>
       )}
 
@@ -295,7 +298,7 @@ function ProductCard({
       type="button"
       onClick={onSelect}
       disabled={!product.is_available}
-      className="flex w-full items-stretch gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)]/60 p-3 text-right transition hover:border-[var(--accent)]/30 hover:bg-[var(--surface-2)] disabled:opacity-50"
+      className="flex w-full items-stretch gap-3 rounded-xl border border-[var(--line)] bg-[var(--elevated)]/55 p-3 text-right transition hover:border-[var(--accent)]/35 hover:bg-[var(--surface-2)] disabled:opacity-50"
     >
       {imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -363,7 +366,7 @@ function ModifierSheet({
       aria-modal="true"
       aria-labelledby="modifier-title"
     >
-      <div className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-[var(--surface)] p-5 shadow-xl sm:rounded-3xl">
+      <div className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-[var(--parchment-from)] p-5 shadow-xl sm:rounded-2xl">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h2 id="modifier-title" className="text-xl font-semibold">
@@ -490,7 +493,7 @@ function CartSheet({
       aria-modal="true"
       aria-labelledby="cart-title"
     >
-      <div className="flex max-h-[90dvh] w-full max-w-lg flex-col rounded-t-3xl bg-[var(--surface)] shadow-xl sm:rounded-3xl">
+      <div className="flex max-h-[90dvh] w-full max-w-lg flex-col rounded-t-2xl bg-[var(--parchment-from)] shadow-xl sm:rounded-2xl">
         <div className="flex items-center justify-between border-b border-[var(--line)] p-5">
           <h2 id="cart-title" className="text-xl font-semibold">
             سلتك

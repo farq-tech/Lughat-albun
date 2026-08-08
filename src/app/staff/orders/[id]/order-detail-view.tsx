@@ -3,13 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrivalBadge, KitchenBadge, PaymentBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatSar } from "@/lib/money";
-import {
-  CUSTOMER_PRESENCE_LABELS,
-  type CustomerPresence,
-} from "@/domains/orders/customer-presence";
-import { staffPrimaryAction, staffStatusLabel } from "@/domains/orders/state-machine";
+import type { CustomerPresence } from "@/domains/orders/customer-presence";
+import { staffPrimaryAction } from "@/domains/orders/state-machine";
 import {
   staffCannotLocateAction,
   staffTransitionAction,
@@ -145,39 +143,30 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
         ← رجوع للطابور
       </Link>
 
-      <header className="mb-6 rounded-2xl border border-[var(--line)] bg-white p-5">
+      <header className="ui-panel mb-6 p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">#{order.public_order_number}</h1>
-            <p className="mt-1 text-[var(--ink-muted)]">
-              {staffStatusLabel(order.status)}
-            </p>
+            <h1 className="font-display text-3xl font-bold">
+              #{order.public_order_number}
+            </h1>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <KitchenBadge status={order.status} />
+              <ArrivalBadge presence={presence} />
+            </div>
           </div>
-          <div className="text-left">
+          <div className="flex flex-col items-end gap-2 text-left">
             <p className="text-xl font-bold">{formatSar(order.total_minor)}</p>
-            {order.payment_method === "CASH_ON_DELIVERY" ? (
-              <span className="text-xs font-bold text-amber-800">
-                دفع عند الاستلام
-              </span>
-            ) : order.payment_status === "PAID" ? (
-              <span className="text-xs text-green-700">مدفوع</span>
-            ) : null}
+            <PaymentBadge
+              paymentMethod={order.payment_method}
+              paymentStatus={order.payment_status}
+            />
           </div>
         </div>
 
-        {presence !== "none" ? (
-          <div
-            className={`mt-4 rounded-xl px-4 py-3 font-bold ${
-              presence === "outside" || presence === "claimed_received"
-                ? "bg-[var(--danger)]/10 text-[var(--danger)]"
-                : "bg-[var(--accent)]/10 text-[var(--accent)]"
-            }`}
-          >
-            تحديث العميل: {CUSTOMER_PRESENCE_LABELS[presence]}
-            {presence === "outside" && order.flasher_confirmed
-              ? " — الفلشر شغّال"
-              : ""}
-          </div>
+        {presence === "outside" && order.flasher_confirmed ? (
+          <p className="mt-4 text-sm font-medium text-[var(--accent)]">
+            الفلشر شغّال
+          </p>
         ) : null}
 
         <dl className="mt-4 grid gap-2 text-sm">
@@ -213,7 +202,7 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
         </dl>
       </header>
 
-      <section className="mb-6 rounded-2xl border border-[var(--line)] bg-white p-5">
+      <section className="ui-panel mb-6 p-5">
         <h2 className="mb-3 text-lg font-bold">الأصناف</h2>
         <ul className="space-y-3">
           {items.map((item) => (
@@ -254,7 +243,7 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
         </div>
       </section>
 
-      <section className="mb-6 rounded-2xl border border-[var(--line)] bg-white p-5">
+      <section className="ui-panel mb-6 p-5">
         <h2 className="mb-3 text-lg font-bold">السجل</h2>
         <ol className="space-y-2">
           {events.map((ev) => (

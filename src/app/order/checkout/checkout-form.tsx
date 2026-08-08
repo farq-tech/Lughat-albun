@@ -9,6 +9,7 @@ import {
   readCachedMenu,
   unitPriceMinor,
 } from "@/components/order/menu-helpers";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatVehicleLabel } from "@/domains/vehicles/validation";
 import { calculateTax, formatSar } from "@/lib/money";
@@ -42,7 +43,7 @@ const PAYMENT_OPTIONS: {
   {
     id: "cash_on_delivery",
     label: "الدفع عند الاستلام",
-    hint: "ادفع كاش للموظف عند تسليم الطلب",
+    hint: "ادفع عند استلام طلبك.",
   },
 ];
 
@@ -172,21 +173,21 @@ export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
             onChange={(e) => setPhone(e.target.value)}
             required
             aria-label="رقم الجوال"
-            className="w-full rounded-xl border border-[var(--line)] bg-white/70 px-4 py-3 text-left focus:border-[var(--accent)]"
+            className="ui-input text-left"
           />
           <span className="text-xs text-[var(--ink-muted)]">
             مثال: 0501234567
           </span>
         </label>
         <label className="block space-y-1.5">
-          <span className="text-sm font-medium">الاسم (اختياري)</span>
+          <span className="text-sm font-medium">الاسم — اختياري</span>
           <input
             type="text"
             autoComplete="given-name"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             maxLength={40}
-            className="w-full rounded-xl border border-[var(--line)] bg-white/70 px-4 py-3 focus:border-[var(--accent)]"
+            className="ui-input"
           />
         </label>
       </section>
@@ -232,7 +233,7 @@ export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
                 onChange={(e) => setMakeModel(e.target.value)}
                 required={!useSavedVehicle}
                 aria-label="نوع السيارة"
-                className="w-full rounded-xl border border-[var(--line)] bg-white/70 px-4 py-3 focus:border-[var(--accent)]"
+                className="ui-input"
               />
             </label>
             <label className="block space-y-1.5">
@@ -244,11 +245,11 @@ export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
                 onChange={(e) => setColor(e.target.value)}
                 required={!useSavedVehicle}
                 aria-label="لون السيارة"
-                className="w-full rounded-xl border border-[var(--line)] bg-white/70 px-4 py-3 focus:border-[var(--accent)]"
+                className="ui-input"
               />
             </label>
             <label className="block space-y-1.5">
-              <span className="text-sm font-medium">آخر 3 من اللوحة (اختياري)</span>
+              <span className="text-sm font-medium">آخر 3 من اللوحة — اختياري</span>
               <input
                 type="text"
                 dir="ltr"
@@ -256,7 +257,7 @@ export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
                 value={plateHint}
                 onChange={(e) => setPlateHint(e.target.value)}
                 aria-label="آخر أرقام اللوحة"
-                className="w-full rounded-xl border border-[var(--line)] bg-white/70 px-4 py-3 text-left focus:border-[var(--accent)]"
+                className="ui-input text-left"
               />
             </label>
           </div>
@@ -266,44 +267,52 @@ export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">طريقة الدفع</h2>
         <div className="grid gap-2">
-          {PAYMENT_OPTIONS.map((opt) => (
-            <label
-              key={opt.id}
-              className={`flex cursor-pointer items-center justify-between rounded-xl border px-4 py-3 transition ${
-                paymentMethod === opt.id
-                  ? "border-[var(--accent)] bg-[var(--accent)]/10"
-                  : "border-[var(--line)] bg-[var(--surface-2)]/40"
-              }`}
-            >
-              <span className="flex flex-col gap-0.5">
-                <span className="flex items-center gap-2">
-                  {opt.label}
-                  {opt.preferred && (
-                    <span className="text-xs text-[var(--accent)]">مفضّل</span>
-                  )}
-                </span>
-                {opt.hint ? (
-                  <span className="text-xs text-[var(--ink-muted)]">
-                    {opt.hint}
+          {PAYMENT_OPTIONS.map((opt) => {
+            const selected = paymentMethod === opt.id;
+            const isCod = opt.id === "cash_on_delivery";
+            return (
+              <label
+                key={opt.id}
+                className={`flex cursor-pointer items-center justify-between rounded-xl border px-4 py-3 transition ${
+                  selected
+                    ? isCod
+                      ? "border-[var(--cod-amber)] bg-[var(--elevated)]"
+                      : "border-[var(--accent)] bg-[var(--surface-2)]"
+                    : "border-[var(--line)] bg-[var(--elevated)]/70"
+                }`}
+              >
+                <span className="flex flex-col gap-1">
+                  <span className="flex flex-wrap items-center gap-2 font-medium">
+                    {opt.label}
+                    {opt.preferred ? (
+                      <span className="text-xs font-normal text-[var(--accent)]">
+                        مفضّل
+                      </span>
+                    ) : null}
+                    {selected && isCod ? (
+                      <Badge tone="cod" dot="cod">
+                        الدفع عند الاستلام
+                      </Badge>
+                    ) : null}
                   </span>
-                ) : null}
-              </span>
-              <input
-                type="radio"
-                name="payment"
-                value={opt.id}
-                checked={paymentMethod === opt.id}
-                onChange={() => setPaymentMethod(opt.id)}
-                className="size-4 accent-[var(--accent)]"
-              />
-            </label>
-          ))}
+                  {opt.hint && selected ? (
+                    <span className="text-xs text-[var(--ink-muted)]">
+                      {opt.hint}
+                    </span>
+                  ) : null}
+                </span>
+                <input
+                  type="radio"
+                  name="payment"
+                  value={opt.id}
+                  checked={selected}
+                  onChange={() => setPaymentMethod(opt.id)}
+                  className="size-4 accent-[var(--accent)]"
+                />
+              </label>
+            );
+          })}
         </div>
-        <p className="text-xs text-[var(--ink-muted)]">
-          {paymentMethod === "cash_on_delivery"
-            ? "بتدفع للموظف عند الاستلام — بدون دفع إلكتروني الآن"
-            : "الدفع الإلكتروني تجريبي حاليًا — ما راح ينخصم منك شيء"}
-        </p>
       </section>
 
       <div className="rounded-2xl border border-[var(--line)] bg-[var(--surface-2)]/50 p-4">
@@ -331,7 +340,7 @@ export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
             : "جاري الدفع..."
           : paymentMethod === "cash_on_delivery"
             ? "أكد الطلب — الدفع عند الاستلام"
-            : "ادفع واطلب"}
+            : `ادفع ${formatSar(displayTotalMinor)}`}
       </Button>
     </form>
   );
