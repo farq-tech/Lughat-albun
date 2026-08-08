@@ -212,4 +212,44 @@ describe("priceCart", () => {
     expect(result.totals.subtotalMinor).toBe(2300);
     expect(canCheckout(result)).toBe(true);
   });
+
+  it("strips stale inactive modifiers and still checks out", () => {
+    const c = catalog();
+    const staleGroup = "99999999-9999-9999-9999-999999999901";
+    const result = priceCart(
+      [
+        {
+          productId: "22222222-2222-2222-2222-222222222201",
+          quantity: 1,
+          modifiers: [
+            {
+              groupId: staleGroup,
+              optionId: "99999999-9999-9999-9999-999999999902",
+            },
+          ],
+        },
+      ],
+      c,
+    );
+    expect(result.totals.invalidItems).toEqual([]);
+    expect(result.totals.unavailableItems).toEqual([]);
+    expect(result.totals.subtotalMinor).toBe(2300);
+    expect(canCheckout(result)).toBe(true);
+  });
+
+  it("marks missing/inactive catalog products as unavailable", () => {
+    const result = priceCart(
+      [
+        {
+          productId: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+          quantity: 1,
+          modifiers: [],
+        },
+      ],
+      catalog(),
+    );
+    expect(result.totals.unavailableItems).toEqual(["منتج"]);
+    expect(result.totals.invalidItems).toEqual([]);
+    expect(canCheckout(result)).toBe(false);
+  });
 });

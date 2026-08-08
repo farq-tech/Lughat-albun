@@ -99,6 +99,15 @@ export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
       if (!result.ok) {
         if (result.code === "PRICE_CHANGED") {
           setError("تغير سعر أحد المنتجات — حدّث الصفحة وكمّل الطلب.");
+        } else if (
+          result.code === "CART_INVALID" ||
+          result.code === "ITEM_UNAVAILABLE"
+        ) {
+          clear();
+          setError(
+            result.message ||
+              "السلة تحتاج تحديث — ارجع للمنيو وأضف الطلب من جديد.",
+          );
         } else {
           setError(result.message);
         }
