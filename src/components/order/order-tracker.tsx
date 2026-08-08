@@ -173,7 +173,7 @@ export function OrderTracker({
   return (
     <div className="mx-auto min-h-dvh max-w-lg px-5 pb-12 pt-10">
       <header className="mb-8 animate-fade-up">
-        <p className="font-display text-lg text-[var(--ink-muted)]">لغة البن</p>
+        <p className="font-display text-lg text-[var(--ink-muted)]">لغات البن</p>
         <h1 className="mt-1 font-display text-3xl text-[var(--ink)]">
           طلبك #{order.public_order_number}
         </h1>

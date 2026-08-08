@@ -1,4 +1,4 @@
--- Lughat Albun Café — Curbside Ordering System
+-- Bean Languages — Curbside Ordering System
 -- All timestamps stored in UTC. Business logic uses Asia/Riyadh.
 
 create extension if not exists "pgcrypto";
@@ -47,8 +47,8 @@ create table public.profiles (
 -- ---------------------------------------------------------------------------
 create table public.store_settings (
   id uuid primary key default gen_random_uuid(),
-  name_ar text not null default 'لغة البن',
-  name_en text not null default 'Lughat Albun Café',
+  name_ar text not null default 'لغات البن',
+  name_en text not null default 'Bean Languages',
   timezone text not null default 'Asia/Riyadh',
   currency text not null default 'SAR',
   tax_rate_bps integer not null default 1500 check (tax_rate_bps >= 0),

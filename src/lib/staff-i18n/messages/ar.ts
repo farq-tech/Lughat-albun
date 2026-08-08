@@ -1,7 +1,7 @@
 import type { StaffMessages } from "../types";
 
 export const ar: StaffMessages = {
-  brand: "لغة البن",
+  brand: "لغات البن",
   login: {
     panelTitle: "لوحة الموظفين",
     title: "تسجيل الدخول",
@@ -13,7 +13,7 @@ export const ar: StaffMessages = {
   },
   queue: {
     title: "طابور الطلبات",
-    live: "لغة البن · مباشر",
+    live: "لغات البن · مباشر",
     soundOn: "تنبيهات صوتية · مفعّلة",
     soundOff: "تنبيهات صوتية",
     refresh: "تحديث",

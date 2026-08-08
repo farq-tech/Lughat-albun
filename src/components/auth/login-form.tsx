@@ -22,7 +22,7 @@ export function LoginForm({
   redirectTo,
   title,
   subtitle,
-  brand = "لغة البن",
+  brand = "لغات البن",
   labels,
 }: LoginFormProps) {
   const router = useRouter();

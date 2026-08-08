@@ -183,7 +183,7 @@ export function MenuView({ menu, source }: MenuViewProps) {
       <header className="sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--parchment-from)]/90 px-5 py-4 backdrop-blur-md">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="font-display text-xl text-[var(--ink)]">لغة البن</p>
+            <p className="font-display text-xl text-[var(--ink)]">لغات البن</p>
             <p className="text-xs text-[var(--ink-muted)]">طلب من السيارة</p>
           </div>
           <Button

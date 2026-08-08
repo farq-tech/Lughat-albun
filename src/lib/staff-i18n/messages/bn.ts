@@ -1,7 +1,7 @@
 import type { StaffMessages } from "../types";
 
 export const bn: StaffMessages = {
-  brand: "লুগাত আল-বুন",
+  brand: "বিন ল্যাঙ্গুয়েজেস",
   login: {
     panelTitle: "স্টাফ প্যানেল",
     title: "সাইন ইন",
@@ -13,7 +13,7 @@ export const bn: StaffMessages = {
   },
   queue: {
     title: "অর্ডার কিউ",
-    live: "লুগাত আল-বুন · লাইভ",
+    live: "বিন ল্যাঙ্গুয়েজেস · লাইভ",
     soundOn: "সাউন্ড অ্যালার্ট · চালু",
     soundOff: "সাউন্ড অ্যালার্ট",
     refresh: "রিফ্রেশ",

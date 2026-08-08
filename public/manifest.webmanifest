@@ -1,7 +1,7 @@
 {
   "id": "/apps/customer",
-  "name": "لغة البن",
-  "short_name": "لغة البن",
+  "name": "لغات البن",
+  "short_name": "لغات البن",
   "description": "اطلب قهوتك من مكانك وخلك بالسيارة",
   "start_url": "/order?source=app",
   "scope": "/order",

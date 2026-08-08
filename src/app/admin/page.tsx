@@ -25,7 +25,7 @@ export default async function AdminPage() {
   return (
     <main className="mx-auto max-w-3xl p-6">
       <header className="mb-10">
-        <h1 className="font-display text-3xl font-bold">لغة البن</h1>
+        <h1 className="font-display text-3xl font-bold">لغات البن</h1>
         <p className="mt-1 text-[var(--ink-muted)]">تشغيل المحل — روابط سريعة</p>
       </header>
 

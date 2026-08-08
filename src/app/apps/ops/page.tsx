@@ -4,8 +4,8 @@ import { opsAppMetadata } from "@/lib/pwa/metadata";
 
 export const metadata = {
   ...opsAppMetadata,
-  title: "طاقم البن",
-  description: "Staff + Admin app for Lughat Al-Bun",
+  title: "طاقم لغات البن",
+  description: "Staff + Admin app for Bean Languages",
 };
 
 export default function OpsAppHomePage() {
@@ -14,15 +14,15 @@ export default function OpsAppHomePage() {
       <header className="mb-8 text-center">
         <Image
           src="/icons/ops/apple-touch-icon.png"
-          alt="طاقم البن"
+          alt="طاقم لغات البن"
           width={112}
           height={112}
           className="mx-auto size-28 rounded-[26px] shadow-sm"
           priority
         />
-        <h1 className="mt-5 font-display text-3xl text-[var(--ink)]">طاقم البن</h1>
+        <h1 className="mt-5 font-display text-3xl text-[var(--ink)]">طاقم لغات البن</h1>
         <p className="mt-2 text-sm text-[var(--ink-muted)]">
-          Staff + Admin · Lughat Al-Bun
+          Staff + Admin · Bean Languages
         </p>
       </header>
 
@@ -31,7 +31,7 @@ export default function OpsAppHomePage() {
         <ol className="list-decimal space-y-1.5 pe-5 text-sm text-[var(--ink-muted)]">
           <li>Tap Share</li>
           <li>Add to Home Screen</li>
-          <li>Name: طاقم البن — Add</li>
+          <li>Name: طاقم لغات البن — Add</li>
         </ol>
       </section>
 

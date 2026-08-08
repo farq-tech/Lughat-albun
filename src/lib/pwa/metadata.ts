@@ -9,7 +9,7 @@ const sharedIcons = {
 } as const;
 
 export const customerAppMetadata: Metadata = {
-  applicationName: "لغة البن",
+  applicationName: "لغات البن",
   manifest: "/manifests/customer.webmanifest",
   icons: {
     ...sharedIcons,
@@ -37,18 +37,18 @@ export const customerAppMetadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "لغة البن",
+    title: "لغات البن",
     statusBarStyle: "black-translucent",
   },
 };
 
 export const opsAppMetadata: Metadata = {
-  applicationName: "طاقم البن",
+  applicationName: "طاقم لغات البن",
   title: {
-    default: "طاقم البن",
-    template: "%s | طاقم البن",
+    default: "طاقم لغات البن",
+    template: "%s | طاقم لغات البن",
   },
-  description: "Staff and admin app — Lughat Al-Bun",
+  description: "Staff and admin app — Bean Languages",
   manifest: "/manifests/ops.webmanifest",
   icons: {
     ...sharedIcons,
@@ -76,7 +76,7 @@ export const opsAppMetadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "طاقم البن",
+    title: "طاقم لغات البن",
     statusBarStyle: "black-translucent",
   },
 };

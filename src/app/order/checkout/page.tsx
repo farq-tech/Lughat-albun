@@ -15,7 +15,7 @@ type PageProps = {
 function SystemPreparing() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center px-6 py-16 text-center">
-      <p className="font-display text-2xl">لغة البن</p>
+      <p className="font-display text-2xl">لغات البن</p>
       <p className="mt-8 text-lg text-[var(--ink-muted)]">النظام قيد التجهيز</p>
       <Button asLink href="/order" variant="secondary" className="mt-8">
         رجوع

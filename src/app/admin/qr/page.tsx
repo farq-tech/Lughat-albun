@@ -49,7 +49,7 @@ export default function AdminQrPage() {
         className="qr-print-sheet mx-auto flex flex-col items-center justify-center rounded-2xl border border-[var(--line)] bg-[var(--elevated)] p-10 text-center shadow-sm print:border-0 print:shadow-none"
       >
         <p className="font-display text-4xl font-bold tracking-tight text-[var(--ink)]">
-          لغة البن
+          لغات البن
         </p>
         <p className="mt-3 text-2xl font-semibold text-[var(--ink)]">
           اطلب من سيارتك

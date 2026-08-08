@@ -1,7 +1,7 @@
 import type { StaffMessages } from "../types";
 
 export const en: StaffMessages = {
-  brand: "Lughat Al-Bun",
+  brand: "Bean Languages",
   login: {
     panelTitle: "Staff panel",
     title: "Sign in",
@@ -13,7 +13,7 @@ export const en: StaffMessages = {
   },
   queue: {
     title: "Order queue",
-    live: "Lughat Al-Bun · Live",
+    live: "Bean Languages · Live",
     soundOn: "Sound alerts · On",
     soundOff: "Sound alerts",
     refresh: "Refresh",

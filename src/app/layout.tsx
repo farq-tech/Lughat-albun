@@ -18,12 +18,12 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: {
-    default: "لغة البن — طلب من السيارة",
-    template: "%s | لغة البن",
+    default: "لغات البن — طلب من السيارة",
+    template: "%s | لغات البن",
   },
   description:
-    "اطلب قهوتك من مكانك وخلك بالسيارة. لغة البن — Lughat Albun Café.",
-  applicationName: "لغة البن",
+    "اطلب قهوتك من مكانك وخلك بالسيارة. لغات البن — Bean Languages.",
+  applicationName: "لغات البن",
   manifest: "/manifests/customer.webmanifest",
   icons: {
     icon: [
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "لغة البن",
+    title: "لغات البن",
     statusBarStyle: "black-translucent",
   },
 };

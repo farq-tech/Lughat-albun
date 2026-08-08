@@ -4,7 +4,7 @@ import { customerAppMetadata } from "@/lib/pwa/metadata";
 
 export const metadata = {
   ...customerAppMetadata,
-  title: "تطبيقات لغة البن",
+  title: "تطبيقات لغات البن",
   description: "ثبّت تطبيق العملاء أو تطبيق الطاقم على الشاشة الرئيسية",
 };
 
@@ -25,14 +25,14 @@ export default function AppsHubPage() {
       <header className="mb-10 text-center">
         <Image
           src="/brand/lughat-albun-logo-circle.png"
-          alt="لغة البن"
+          alt="لغات البن"
           width={96}
           height={96}
           className="mx-auto size-24 rounded-full object-cover"
           priority
         />
         <h1 className="mt-5 font-display text-3xl text-[var(--ink)]">
-          تطبيقات لغة البن
+          تطبيقات لغات البن
         </h1>
         <p className="mt-2 text-sm text-[var(--ink-muted)]">
           تطبيقين منفصلين على الآيفون — واحد للعملاء وواحد للستاف والأدمن
@@ -51,7 +51,7 @@ export default function AppsHubPage() {
             />
             <div>
               <h2 className="text-lg font-semibold">تطبيق العملاء</h2>
-              <p className="text-sm text-[var(--ink-muted)]">لغة البن</p>
+              <p className="text-sm text-[var(--ink-muted)]">لغات البن</p>
             </div>
           </div>
           <p className="mt-3 text-sm text-[var(--ink-muted)]">
