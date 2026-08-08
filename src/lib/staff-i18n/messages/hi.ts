@@ -1,7 +1,7 @@
 import type { StaffMessages } from "../types";
 
 export const hi: StaffMessages = {
-  brand: "लुग़त अल-बुन",
+  brand: "बीन लैंग्वेजेज़",
   login: {
     panelTitle: "स्टाफ पैनल",
     title: "साइन इन",
@@ -13,7 +13,7 @@ export const hi: StaffMessages = {
   },
   queue: {
     title: "ऑर्डर कतार",
-    live: "लुग़त अल-बुन · लाइव",
+    live: "बीन लैंग्वेजेज़ · लाइव",
     soundOn: "साउंड अलर्ट · चालू",
     soundOff: "साउंड अलर्ट",
     refresh: "रिफ्रेश",

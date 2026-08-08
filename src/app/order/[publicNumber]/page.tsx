@@ -14,7 +14,7 @@ type PageProps = {
 function SystemPreparing() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center px-6 py-16 text-center">
-      <p className="font-display text-2xl">لغة البن</p>
+      <p className="font-display text-2xl">لغات البن</p>
       <p className="mt-8 text-lg text-[var(--ink-muted)]">النظام قيد التجهيز</p>
       <Button asLink href="/order" variant="secondary" className="mt-8">
         رجوع
@@ -26,7 +26,7 @@ function SystemPreparing() {
 function OrderNotFound() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center px-6 py-16 text-center">
-      <p className="font-display text-2xl">لغة البن</p>
+      <p className="font-display text-2xl">لغات البن</p>
       <p className="mt-8 text-lg text-[var(--ink-muted)]">ما لقينا الطلب</p>
       <p className="mt-2 text-sm text-[var(--ink-muted)]">
         تأكد من الرابط أو اطلب من جديد
@@ -76,7 +76,7 @@ export default async function OrderStatusPage({ params, searchParams }: PageProp
   if (domainError) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center px-6 py-16 text-center">
-        <p className="font-display text-2xl">لغة البن</p>
+        <p className="font-display text-2xl">لغات البن</p>
         <p className="mt-8 text-lg text-[var(--ink-muted)]">{domainError.message}</p>
         <Button asLink href="/order" variant="secondary" className="mt-8">
           رجوع

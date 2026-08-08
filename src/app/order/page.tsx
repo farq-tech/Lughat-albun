@@ -12,7 +12,7 @@ function BrandMark() {
     <div className="flex flex-col items-center gap-4 animate-fade-up">
       <Image
         src="/brand/lughat-albun-logo-circle.png"
-        alt="لغة البن"
+        alt="لغات البن"
         width={160}
         height={160}
         priority
@@ -20,10 +20,10 @@ function BrandMark() {
       />
       <div className="flex flex-col items-center gap-1">
         <span className="font-display text-[2.75rem] leading-none tracking-tight text-[var(--ink)] sm:text-5xl">
-          لغة البن
+          لغات البن
         </span>
         <span className="text-xs font-semibold tracking-[0.22em] text-[var(--accent)] uppercase">
-          Lughat Al-Bun Café
+          Bean Languages
         </span>
       </div>
     </div>

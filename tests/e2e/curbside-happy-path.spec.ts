@@ -8,7 +8,7 @@ const hasSupabaseSecrets = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,
 );
 
-test.describe("لغة البن curbside happy path", () => {
+test.describe("لغات البن curbside happy path", () => {
   test.skip(!hasSupabaseSecrets, "Supabase secrets required for E2E");
 
   test.beforeEach(async ({ page }) => {
@@ -19,7 +19,7 @@ test.describe("لغة البن curbside happy path", () => {
     page,
     context,
   }) => {
-    await expect(page.getByRole("heading", { name: /لغة البن|قهوتك تجيك/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /لغات البن|قهوتك تجيك/ })).toBeVisible();
     const start = page.getByRole("link", { name: /ابدأ الطلب/ });
     await expect(start).toBeVisible();
     await start.click();

@@ -11,6 +11,7 @@
   "theme_color": "#1c1410",
   "lang": "ar",
   "dir": "rtl",
+  "categories": ["food", "lifestyle"],
   "icons": [
     {
       "src": "/icons/customer/icon-192.png",

@@ -4,6 +4,9 @@ import {
   Noto_Sans_Devanagari,
 } from "next/font/google";
 import { StaffLocaleProvider } from "@/lib/staff-i18n";
+import { opsAppMetadata } from "@/lib/pwa/metadata";
+
+export const metadata = opsAppMetadata;
 
 const staffSans = Noto_Sans({
   subsets: ["latin"],

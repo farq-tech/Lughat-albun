@@ -233,7 +233,7 @@ export async function createCheckoutAndPay(input: {
       source: input.checkout.source,
       payment_status: "PENDING",
       payment_method: toDbPaymentMethod(
-        input.checkout.paymentMethod ?? "apple_pay",
+        input.checkout.paymentMethod ?? "cash_on_delivery",
       ),
       estimated_prep_min: estimate.min,
       estimated_prep_max: estimate.max,
@@ -321,7 +321,7 @@ export async function createCheckoutAndPay(input: {
 
   const paymentIdempotency = `pay_${input.checkout.idempotencyKey}`;
   const dbPaymentMethod = toDbPaymentMethod(
-    input.checkout.paymentMethod ?? "apple_pay",
+    input.checkout.paymentMethod ?? "cash_on_delivery",
   );
   const isCashOnDelivery = dbPaymentMethod === "CASH_ON_DELIVERY";
 

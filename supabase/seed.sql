@@ -1,12 +1,12 @@
--- Seed: لغة البن / Bean Languages — official approved menu (PDF)
+-- Seed: لغات البن / Bean Languages — official approved menu (PDF)
 -- Prices in halalas (SAR * 100). No product images in seed.
 
 insert into public.store_settings (
   name_ar, name_en, timezone, currency, tax_rate_bps, service_fee_minor,
   base_prep_minutes, car_pickup_enabled, temporary_pause, max_active_car_orders, phone
 ) values (
-  'لغة البن',
-  'Lughat Albun Café',
+  'لغات البن',
+  'Bean Languages',
   'Asia/Riyadh',
   'SAR',
   1500,

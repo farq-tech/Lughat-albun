@@ -46,10 +46,9 @@ export type PresenceUpdateResult =
 
 /**
  * Arrival presence is separate from kitchen status.
- * Allowed flows:
- *   none → on_the_way → outside
- *   none → outside
- * Downgrade outside → on_the_way is forbidden.
+ * Product UI exposes only «أنا برا».
+ * Backend still accepts legacy on_the_way / claimed_received.
+ * Primary flow: none → outside
  */
 export function canUpdateCustomerPresence(input: {
   orderStatus: string;
@@ -128,11 +127,10 @@ export function eventTypeForPresence(presence: CustomerPresenceAction): string {
   }
 }
 
+/** Customer-facing actions only — «أنا برا». */
 export function nextPresenceActions(
   current: CustomerPresence,
 ): CustomerPresenceAction[] {
-  if (current === "none") return ["on_the_way", "outside"];
-  if (current === "on_the_way") return ["outside"];
-  if (current === "outside") return ["claimed_received"];
+  if (current === "none" || current === "on_the_way") return ["outside"];
   return [];
 }

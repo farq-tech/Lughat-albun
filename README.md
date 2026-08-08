@@ -1,6 +1,6 @@
-# لغة البن — Lughat Albun Café
+# لغات البن — Bean Languages
 
-نظام طلب واستلام من السيارة (Curbside Ordering) لمقهى **لغة البن**.
+نظام طلب واستلام من السيارة (Curbside Ordering) لمقهى **لغات البن**.
 
 > اطلب بسرعة → ادفع → أنا بالطريق → وصلت → نتعرف على سيارتك → نسلم الطلب.
 
@@ -12,7 +12,7 @@
 
 | | |
 |---|---|
-| Brand | لغة البن / Lughat Albun Café |
+| Brand | لغات البن / Bean Languages |
 | Locale | `ar-SA` · RTL · `Asia/Riyadh` · SAR |
 | Customer | Guest checkout + anonymous token |
 | Staff | Supabase Auth + roles |

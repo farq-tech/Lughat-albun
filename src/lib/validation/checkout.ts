@@ -40,15 +40,8 @@ export const checkoutSchema = z.object({
   clientTotalMinor: z.number().int().nonnegative().optional(),
   source: z.enum(["qr", "link", "repeat", "admin"]).default("link"),
   idempotencyKey: z.string().min(8).max(128),
-  paymentMethod: z
-    .enum([
-      "apple_pay",
-      "mada",
-      "visa",
-      "mastercard",
-      "cash_on_delivery",
-    ])
-    .default("apple_pay"),
+  // COD-only storefront for now.
+  paymentMethod: z.literal("cash_on_delivery").default("cash_on_delivery"),
   paymentSimulate: z
     .enum(["success", "failure", "cancel", "delayed"])
     .optional(),
@@ -58,23 +51,7 @@ export type CheckoutInput = z.infer<typeof checkoutSchema>;
 export type CheckoutPaymentMethod = CheckoutInput["paymentMethod"];
 
 export function toDbPaymentMethod(
-  method: CheckoutPaymentMethod,
-):
-  | "APPLE_PAY"
-  | "MADA"
-  | "VISA"
-  | "MASTERCARD"
-  | "CASH_ON_DELIVERY" {
-  switch (method) {
-    case "apple_pay":
-      return "APPLE_PAY";
-    case "mada":
-      return "MADA";
-    case "visa":
-      return "VISA";
-    case "mastercard":
-      return "MASTERCARD";
-    case "cash_on_delivery":
-      return "CASH_ON_DELIVERY";
-  }
+  _method: CheckoutPaymentMethod = "cash_on_delivery",
+): "CASH_ON_DELIVERY" {
+  return "CASH_ON_DELIVERY";
 }
