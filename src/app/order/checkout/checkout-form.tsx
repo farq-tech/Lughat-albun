@@ -251,7 +251,7 @@ export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
             الدفع عند الاستلام
           </Badge>
           <p className="mt-2 text-sm text-[var(--ink-muted)]">
-            ادفع كاش عند استلام طلبك من السيارة.
+            ادفع عند استلام طلبك من السيارة.
           </p>
         </div>
       </section>
