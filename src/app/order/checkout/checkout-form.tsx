@@ -23,31 +23,6 @@ type SavedVehicle = {
   plate_hint: string | null;
 };
 
-type PaymentMethod =
-  | "apple_pay"
-  | "mada"
-  | "visa"
-  | "mastercard"
-  | "cash_on_delivery";
-
-const PAYMENT_OPTIONS: {
-  id: PaymentMethod;
-  label: string;
-  preferred?: boolean;
-  hint?: string;
-}[] = [
-  {
-    id: "cash_on_delivery",
-    label: "الدفع عند الاستلام",
-    preferred: true,
-    hint: "ادفع عند استلام طلبك.",
-  },
-  { id: "apple_pay", label: "Apple Pay" },
-  { id: "mada", label: "مدى" },
-  { id: "visa", label: "Visa" },
-  { id: "mastercard", label: "Mastercard" },
-];
-
 type CheckoutFormProps = {
   source: OrderSource;
   savedVehicle: SavedVehicle | null;
@@ -60,8 +35,6 @@ export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
 
   const [phone, setPhone] = useState("");
   const [firstName, setFirstName] = useState("");
-  const [paymentMethod, setPaymentMethod] =
-    useState<PaymentMethod>("cash_on_delivery");
   const [useSavedVehicle, setUseSavedVehicle] = useState(!!savedVehicle);
   const [makeModel, setMakeModel] = useState(savedVehicle?.make_model ?? "");
   const [color, setColor] = useState(savedVehicle?.color ?? "");
@@ -120,16 +93,12 @@ export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
         clientTotalMinor: displayTotalMinor > 0 ? displayTotalMinor : undefined,
         source,
         idempotencyKey,
-        paymentMethod,
-        paymentSimulate:
-          paymentMethod === "cash_on_delivery" ? undefined : "success",
+        paymentMethod: "cash_on_delivery",
       });
 
       if (!result.ok) {
         if (result.code === "PRICE_CHANGED") {
-          setError("تغير سعر أحد المنتجات — حدّث الصفحة وكمّل الدفع.");
-        } else if (result.code === "PAYMENT_FAILED") {
-          setError("صار خطأ في الدفع، ما انخصم منك شيء.");
+          setError("تغير سعر أحد المنتجات — حدّث الصفحة وكمّل الطلب.");
         } else {
           setError(result.message);
         }
@@ -268,52 +237,13 @@ export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">طريقة الدفع</h2>
-        <div className="grid gap-2">
-          {PAYMENT_OPTIONS.map((opt) => {
-            const selected = paymentMethod === opt.id;
-            const isCod = opt.id === "cash_on_delivery";
-            return (
-              <label
-                key={opt.id}
-                className={`flex cursor-pointer items-center justify-between rounded-xl border px-4 py-3 transition ${
-                  selected
-                    ? isCod
-                      ? "border-[var(--cod-amber)] bg-[var(--elevated)]"
-                      : "border-[var(--accent)] bg-[var(--surface-2)]"
-                    : "border-[var(--line)] bg-[var(--elevated)]/70"
-                }`}
-              >
-                <span className="flex flex-col gap-1">
-                  <span className="flex flex-wrap items-center gap-2 font-medium">
-                    {opt.label}
-                    {opt.preferred ? (
-                      <span className="text-xs font-normal text-[var(--accent)]">
-                        مفضّل
-                      </span>
-                    ) : null}
-                    {selected && isCod ? (
-                      <Badge tone="cod" dot="cod">
-                        الدفع عند الاستلام
-                      </Badge>
-                    ) : null}
-                  </span>
-                  {opt.hint && selected ? (
-                    <span className="text-xs text-[var(--ink-muted)]">
-                      {opt.hint}
-                    </span>
-                  ) : null}
-                </span>
-                <input
-                  type="radio"
-                  name="payment"
-                  value={opt.id}
-                  checked={selected}
-                  onChange={() => setPaymentMethod(opt.id)}
-                  className="size-4 accent-[var(--accent)]"
-                />
-              </label>
-            );
-          })}
+        <div className="rounded-xl border border-[var(--cod-amber)] bg-[var(--elevated)] px-4 py-3">
+          <Badge tone="cod" dot="cod">
+            الدفع عند الاستلام
+          </Badge>
+          <p className="mt-2 text-sm text-[var(--ink-muted)]">
+            ادفع كاش عند استلام طلبك من السيارة.
+          </p>
         </div>
       </section>
 
@@ -337,12 +267,8 @@ export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
 
       <Button type="submit" size="lg" className="w-full" disabled={pending}>
         {pending
-          ? paymentMethod === "cash_on_delivery"
-            ? "جاري تأكيد الطلب..."
-            : "جاري الدفع..."
-          : paymentMethod === "cash_on_delivery"
-            ? "أكد الطلب — الدفع عند الاستلام"
-            : `ادفع ${formatSar(displayTotalMinor)}`}
+          ? "جاري تأكيد الطلب..."
+          : "أكد الطلب — الدفع عند الاستلام"}
       </Button>
     </form>
   );

@@ -20,10 +20,37 @@ describe("payment method checkout wiring", () => {
     expect(toDbPaymentMethod(parsed.paymentMethod)).toBe("CASH_ON_DELIVERY");
   });
 
-  it("keeps electronic methods mapped for card rails", () => {
-    expect(toDbPaymentMethod("apple_pay")).toBe("APPLE_PAY");
-    expect(toDbPaymentMethod("mada")).toBe("MADA");
-    expect(toDbPaymentMethod("visa")).toBe("VISA");
-    expect(toDbPaymentMethod("mastercard")).toBe("MASTERCARD");
+  it("defaults to cash_on_delivery only", () => {
+    const parsed = checkoutSchema.parse({
+      items: [
+        {
+          productId: "22222222-2222-2222-2222-222222222222",
+          quantity: 1,
+          modifiers: [],
+        },
+      ],
+      phone: "0501234567",
+      source: "qr",
+      idempotencyKey: "idem-cod-default-1234",
+    });
+    expect(parsed.paymentMethod).toBe("cash_on_delivery");
+  });
+
+  it("rejects electronic payment methods", () => {
+    expect(() =>
+      checkoutSchema.parse({
+        items: [
+          {
+            productId: "22222222-2222-2222-2222-222222222222",
+            quantity: 1,
+            modifiers: [],
+          },
+        ],
+        phone: "0501234567",
+        source: "qr",
+        idempotencyKey: "idem-cod-reject-1234",
+        paymentMethod: "apple_pay",
+      }),
+    ).toThrow();
   });
 });
