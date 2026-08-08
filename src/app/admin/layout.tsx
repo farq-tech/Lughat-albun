@@ -1,3 +1,7 @@
+import { opsAppMetadata } from "@/lib/pwa/metadata";
+
+export const metadata = opsAppMetadata;
+
 export default function AdminLayout({
   children,
 }: {
