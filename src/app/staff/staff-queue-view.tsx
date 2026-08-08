@@ -95,6 +95,7 @@ export function StaffQueueView({ initialOrders }: StaffQueueViewProps) {
   const [orders, setOrders] = useState(initialOrders);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const knownIdsRef = useRef(new Set(initialOrders.map((o) => o.id)));
   const arrivedIdsRef = useRef(
     new Set(
@@ -213,6 +214,7 @@ export function StaffQueueView({ initialOrders }: StaffQueueViewProps) {
   async function handleAction(order: StaffQueueOrder) {
     if (!order.primaryAction) return;
     setBusyId(order.id);
+    setActionError(null);
     const result = await staffTransitionAction({
       orderId: order.id,
       toStatus: order.primaryAction.next,
@@ -220,7 +222,9 @@ export function StaffQueueView({ initialOrders }: StaffQueueViewProps) {
     setBusyId(null);
     if (result.ok) {
       await refetch();
+      return;
     }
+    setActionError(result.message ?? "فشل تحديث حالة الطلب");
   }
 
   function enableSound() {
@@ -252,6 +256,15 @@ export function StaffQueueView({ initialOrders }: StaffQueueViewProps) {
           </Button>
         </div>
       </header>
+
+      {actionError ? (
+        <p
+          className="mb-4 rounded-xl bg-[var(--danger)]/10 px-4 py-3 text-sm text-[var(--danger)]"
+          role="alert"
+        >
+          {actionError}
+        </p>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-4">
         {SECTIONS.map((section) => {
