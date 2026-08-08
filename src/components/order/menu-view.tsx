@@ -12,6 +12,7 @@ import {
 } from "@/components/order/menu-helpers";
 import { formatSar } from "@/lib/money";
 import type {
+  CartLineInput,
   CartModifierSelection,
   Category,
   ModifierGroup,
