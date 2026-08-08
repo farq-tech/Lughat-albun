@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     template: "%s | لغات البن",
   },
   description:
-    "اطلب قهوتك من مكانك وخلك بالسيارة. لغات البن — Bean Languages.",
+    "اطلب قهوتك من مكانك وخلك بالسيارة. لغات البن — Coffee Languages.",
   applicationName: "لغات البن",
   manifest: "/manifests/customer.webmanifest",
   icons: {

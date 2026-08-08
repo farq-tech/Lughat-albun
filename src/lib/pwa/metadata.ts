@@ -48,7 +48,7 @@ export const opsAppMetadata: Metadata = {
     default: "طاقم لغات البن",
     template: "%s | طاقم لغات البن",
   },
-  description: "Staff and admin app — Bean Languages",
+  description: "Staff and admin app — Coffee Languages",
   manifest: "/manifests/ops.webmanifest",
   icons: {
     ...sharedIcons,

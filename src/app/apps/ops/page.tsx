@@ -5,7 +5,7 @@ import { opsAppMetadata } from "@/lib/pwa/metadata";
 export const metadata = {
   ...opsAppMetadata,
   title: "طاقم لغات البن",
-  description: "Staff + Admin app for Bean Languages",
+  description: "Staff + Admin app for Coffee Languages",
 };
 
 export default function OpsAppHomePage() {
@@ -22,7 +22,7 @@ export default function OpsAppHomePage() {
         />
         <h1 className="mt-5 font-display text-3xl text-[var(--ink)]">طاقم لغات البن</h1>
         <p className="mt-2 text-sm text-[var(--ink-muted)]">
-          Staff + Admin · Bean Languages
+          Staff + Admin · Coffee Languages
         </p>
       </header>
 
