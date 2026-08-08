@@ -9,9 +9,22 @@ type LoginFormProps = {
   redirectTo: string;
   title: string;
   subtitle?: string;
+  brand?: string;
+  labels?: {
+    email?: string;
+    password?: string;
+    submit?: string;
+    invalidCredentials?: string;
+  };
 };
 
-export function LoginForm({ redirectTo, title, subtitle }: LoginFormProps) {
+export function LoginForm({
+  redirectTo,
+  title,
+  subtitle,
+  brand = "لغة البن",
+  labels,
+}: LoginFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,7 +45,9 @@ export function LoginForm({ redirectTo, title, subtitle }: LoginFormProps) {
     setLoading(false);
 
     if (authError) {
-      setError("البريد أو كلمة المرور غير صحيحة");
+      setError(
+        labels?.invalidCredentials ?? "البريد أو كلمة المرور غير صحيحة",
+      );
       return;
     }
 
@@ -43,7 +58,7 @@ export function LoginForm({ redirectTo, title, subtitle }: LoginFormProps) {
   return (
     <form onSubmit={onSubmit} className="ui-panel w-full max-w-sm space-y-4 p-6">
       <div className="space-y-1 text-center">
-        <p className="font-display text-sm text-[var(--ink-muted)]">لغة البن</p>
+        <p className="font-display text-sm text-[var(--ink-muted)]">{brand}</p>
         <h1 className="font-display text-2xl font-bold text-[var(--ink)]">
           {title}
         </h1>
@@ -54,7 +69,7 @@ export function LoginForm({ redirectTo, title, subtitle }: LoginFormProps) {
 
       <label className="block space-y-1.5">
         <span className="text-sm font-medium text-[var(--ink)]">
-          البريد / اسم المستخدم
+          {labels?.email ?? "البريد / اسم المستخدم"}
         </span>
         <input
           type="email"
@@ -68,7 +83,9 @@ export function LoginForm({ redirectTo, title, subtitle }: LoginFormProps) {
       </label>
 
       <label className="block space-y-1.5">
-        <span className="text-sm font-medium text-[var(--ink)]">كلمة المرور</span>
+        <span className="text-sm font-medium text-[var(--ink)]">
+          {labels?.password ?? "كلمة المرور"}
+        </span>
         <input
           type="password"
           required
@@ -90,7 +107,7 @@ export function LoginForm({ redirectTo, title, subtitle }: LoginFormProps) {
       ) : null}
 
       <Button type="submit" className="w-full" size="lg" disabled={loading}>
-        {loading ? "..." : "تسجيل الدخول"}
+        {loading ? "..." : (labels?.submit ?? "تسجيل الدخول")}
       </Button>
     </form>
   );
