@@ -1,5 +1,5 @@
 export const SOCIAL = {
-  handle: "@BEAN.LANGUAGES",
-  instagramUrl: "https://www.instagram.com/bean.languages/",
-  snapchatUrl: "https://www.snapchat.com/add/bean.languages",
+  handle: "@lughat_albon",
+  instagramUrl: "https://www.instagram.com/lughat_albon/",
+  snapchatUrl: "https://www.snapchat.com/add/lughat_albon",
 } as const;

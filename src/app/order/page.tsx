@@ -23,7 +23,7 @@ function BrandMark() {
           لغات البن
         </span>
         <span className="text-xs font-semibold tracking-[0.22em] text-[var(--accent)] uppercase">
-          Bean Languages
+          Coffee Languages
         </span>
       </div>
     </div>

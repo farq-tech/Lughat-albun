@@ -81,7 +81,7 @@ export async function createCheckoutAndPay(input: {
   if (priced.totals.unavailableItems.length > 0) {
     throw new DomainError(
       "ITEM_UNAVAILABLE",
-      "أحد المنتجات غير متوفر حاليًا (الأدمن عطّله).",
+      "أحد المنتجات غير متوفر أو تغيّر من المنيو — امسح السلة وأعد الطلب.",
       { unavailableItems: priced.totals.unavailableItems, cart: priced },
     );
   }
@@ -89,7 +89,7 @@ export async function createCheckoutAndPay(input: {
   if (priced.totals.invalidItems.length > 0) {
     throw new DomainError(
       "CART_INVALID",
-      "في مشكلة بخيارات أحد المنتجات — ارجع للسلة وعدّل الطلب.",
+      "بعض المنتجات في السلة قديمة أو خياراتها تغيّرت — امسح السلة وأعد الطلب من المنيو.",
       { invalidItems: priced.totals.invalidItems, cart: priced },
     );
   }

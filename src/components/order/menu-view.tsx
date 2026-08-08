@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { SocialLinks } from "@/components/brand/social-links";
 import { useCart } from "@/components/order/cart-store";
@@ -12,7 +12,6 @@ import {
 } from "@/components/order/menu-helpers";
 import { formatSar } from "@/lib/money";
 import type {
-  CartLineInput,
   CartModifierSelection,
   Category,
   ModifierGroup,
@@ -73,11 +72,70 @@ function defaultSelections(groups: ModifierGroup[]): CartModifierSelection[] {
 }
 
 export function MenuView({ menu, source }: MenuViewProps) {
-  const { items, addItem, removeItem, setQuantity, itemCount } = useCart();
+  const { items, addItem, removeItem, setQuantity, itemCount, replaceItems } =
+    useCart();
+
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
 
   useEffect(() => {
     cacheMenu(menu);
-  }, [menu]);
+    const current = itemsRef.current;
+    const activeIds = new Set(
+      menu.products.filter((p) => p.is_active && p.is_available).map((p) => p.id),
+    );
+    const optionOk = new Map<string, Set<string>>();
+    for (const group of menu.groups) {
+      if (!group.is_active) continue;
+      optionOk.set(
+        group.id,
+        new Set(
+          group.options
+            .filter((o) => o.is_active && o.is_available)
+            .map((o) => o.id),
+        ),
+      );
+    }
+
+    const next = current
+      .filter((line) => activeIds.has(line.productId))
+      .map((line) => {
+        const allowedGroups = new Set(
+          (menu.productGroups[line.productId] ?? []).filter((id) =>
+            optionOk.has(id),
+          ),
+        );
+        const modifiers = line.modifiers.filter(
+          (m) =>
+            allowedGroups.has(m.groupId) &&
+            optionOk.get(m.groupId)?.has(m.optionId),
+        );
+        const groups = getGroupsForProduct(menu, line.productId);
+        const present = new Set(modifiers.map((m) => m.groupId));
+        for (const group of groups) {
+          if (!group.required || present.has(group.id)) continue;
+          const first = group.options.find((o) => o.is_active && o.is_available);
+          if (first) {
+            modifiers.push({ groupId: group.id, optionId: first.id });
+            present.add(group.id);
+          }
+        }
+        return { ...line, modifiers };
+      });
+
+    const changed =
+      next.length !== current.length ||
+      next.some(
+        (line, i) =>
+          line.modifiers.length !== current[i]?.modifiers.length ||
+          line.modifiers.some(
+            (m, j) =>
+              m.groupId !== current[i]?.modifiers[j]?.groupId ||
+              m.optionId !== current[i]?.modifiers[j]?.optionId,
+          ),
+      );
+    if (changed) replaceItems(next);
+  }, [menu, replaceItems]);
 
   const [active, setActive] = useState<ActiveProduct | null>(null);
   const [modifierSelections, setModifierSelections] = useState<
@@ -142,7 +200,14 @@ export function MenuView({ menu, source }: MenuViewProps) {
       const has = inGroup.some((s) => s.optionId === optionId);
 
       if (group.max_selection === 1) {
-        return [...prev.filter((s) => s.groupId !== group.id), { groupId: group.id, optionId }];
+        // Optional single-choice groups can be cleared by tapping again.
+        if (has && !group.required) {
+          return prev.filter((s) => s.groupId !== group.id);
+        }
+        return [
+          ...prev.filter((s) => s.groupId !== group.id),
+          { groupId: group.id, optionId },
+        ];
       }
 
       if (has) {

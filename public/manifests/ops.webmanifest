@@ -2,7 +2,7 @@
   "id": "/apps/ops",
   "name": "لغات البن — طاقم",
   "short_name": "طاقم البن",
-  "description": "Staff and admin app for Bean Languages kitchen and store",
+  "description": "Staff and admin app for Coffee Languages kitchen and store",
   "start_url": "/apps/ops",
   "scope": "/",
   "display": "standalone",

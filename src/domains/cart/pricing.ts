@@ -41,7 +41,11 @@ export function withDefaultModifiers(
   catalog: PricingCatalog,
 ): CartLineInput["modifiers"] {
   const groupIds = catalog.productGroupIds.get(productId) ?? [];
-  const allowed = new Set(groupIds);
+  const activeGroupIds = groupIds.filter((id) => {
+    const group = catalog.groups.get(id);
+    return !!group?.is_active;
+  });
+  const allowed = new Set(activeGroupIds);
 
   const cleaned = selected.filter((sel) => {
     if (!allowed.has(sel.groupId)) return false;
@@ -54,10 +58,22 @@ export function withDefaultModifiers(
     );
   });
 
-  const presentGroups = new Set(cleaned.map((s) => s.groupId));
-  const result = [...cleaned];
+  // Keep at most max_selection options per group (stale carts may over-select).
+  const trimmed: CartLineInput["modifiers"] = [];
+  const countByGroup = new Map<string, number>();
+  for (const sel of cleaned) {
+    const group = catalog.groups.get(sel.groupId);
+    if (!group) continue;
+    const count = countByGroup.get(sel.groupId) ?? 0;
+    if (count >= group.max_selection) continue;
+    trimmed.push(sel);
+    countByGroup.set(sel.groupId, count + 1);
+  }
 
-  for (const groupId of groupIds) {
+  const presentGroups = new Set(trimmed.map((s) => s.groupId));
+  const result = [...trimmed];
+
+  for (const groupId of activeGroupIds) {
     const group = catalog.groups.get(groupId);
     if (!group?.is_active) continue;
     if (presentGroups.has(groupId)) continue;
@@ -78,7 +94,9 @@ function validateModifiers(
   selected: CartLineInput["modifiers"],
   catalog: PricingCatalog,
 ): { ok: true; priced: PricedCartLine["modifiers"] } | { ok: false; reason: string } {
-  const groupIds = catalog.productGroupIds.get(productId) ?? [];
+  const groupIds = (catalog.productGroupIds.get(productId) ?? []).filter(
+    (id) => catalog.groups.get(id)?.is_active,
+  );
   const priced: PricedCartLine["modifiers"] = [];
   const byGroup = new Map<string, string[]>();
 
@@ -140,7 +158,7 @@ export function priceCart(
     }
     const product = catalog.products.get(item.productId);
     if (!product || !product.is_active) {
-      invalidItems.push(product?.name_ar ?? "منتج");
+      unavailableItems.push(product?.name_ar ?? "منتج");
       continue;
     }
 
@@ -159,11 +177,9 @@ export function priceCart(
       continue;
     }
 
-    let modResult = validateModifiers(product.id, item.modifiers, catalog);
-    if (!modResult.ok) {
-      const repaired = withDefaultModifiers(product.id, item.modifiers, catalog);
-      modResult = validateModifiers(product.id, repaired, catalog);
-    }
+    // Always normalize first — stale carts may carry old modifier ids after menu sync.
+    const normalized = withDefaultModifiers(product.id, item.modifiers, catalog);
+    const modResult = validateModifiers(product.id, normalized, catalog);
     if (!modResult.ok) {
       invalidItems.push(product.name_ar);
       lines.push({

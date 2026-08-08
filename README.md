@@ -1,4 +1,4 @@
-# لغات البن — Bean Languages
+# لغات البن — Coffee Languages
 
 نظام طلب واستلام من السيارة (Curbside Ordering) لمقهى **لغات البن**.
 
@@ -12,7 +12,7 @@
 
 | | |
 |---|---|
-| Brand | لغات البن / Bean Languages |
+| Brand | لغات البن / Coffee Languages |
 | Locale | `ar-SA` · RTL · `Asia/Riyadh` · SAR |
 | Customer | Guest checkout + anonymous token |
 | Staff | Supabase Auth + roles |
