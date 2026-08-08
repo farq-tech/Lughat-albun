@@ -67,10 +67,13 @@ export async function checkoutAction(
       };
     }
     if (e && typeof e === "object" && "issues" in e) {
+      const issues = (e as { issues?: Array<{ message?: string; path?: unknown[] }> })
+        .issues;
+      const first = issues?.[0]?.message;
       return {
         ok: false,
         code: "VALIDATION",
-        message: "تأكد من البيانات",
+        message: first && first.length > 0 ? first : "تأكد من البيانات",
         details: e,
       };
     }

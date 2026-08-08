@@ -158,6 +158,9 @@ export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
             aria-label="رقم الجوال"
             className="w-full rounded-xl border border-[var(--line)] bg-white/70 px-4 py-3 text-left focus:border-[var(--accent)]"
           />
+          <span className="text-xs text-[var(--ink-muted)]">
+            مثال: 0501234567
+          </span>
         </label>
         <label className="block space-y-1.5">
           <span className="text-sm font-medium">الاسم (اختياري)</span>
