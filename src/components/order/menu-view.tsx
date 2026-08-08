@@ -10,6 +10,7 @@ import {
   unitPriceMinor,
 } from "@/components/order/menu-helpers";
 import { formatSar } from "@/lib/money";
+import { productImageUrl } from "@/lib/product-image";
 import type {
   CartLineInput,
   CartModifierSelection,
@@ -288,27 +289,46 @@ function ProductCard({
   product: Product;
   onSelect: () => void;
 }) {
+  const imageUrl = productImageUrl(product.image_path);
   return (
     <button
       type="button"
       onClick={onSelect}
       disabled={!product.is_available}
-      className="flex w-full items-start justify-between gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)]/60 p-4 text-right transition hover:border-[var(--accent)]/30 hover:bg-[var(--surface-2)] disabled:opacity-50"
+      className="flex w-full items-stretch gap-3 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)]/60 p-3 text-right transition hover:border-[var(--accent)]/30 hover:bg-[var(--surface-2)] disabled:opacity-50"
     >
-      <div className="min-w-0 flex-1">
-        <h3 className="font-semibold text-[var(--ink)]">{product.name_ar}</h3>
-        {product.description_ar && (
-          <p className="mt-1 line-clamp-2 text-sm text-[var(--ink-muted)]">
-            {product.description_ar}
-          </p>
-        )}
-        {!product.is_available && (
-          <p className="mt-1 text-sm text-[var(--danger)]">غير متوفر</p>
-        )}
+      {imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageUrl}
+          alt={product.name_ar}
+          className="h-20 w-20 shrink-0 rounded-xl object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-3)] text-xs text-[var(--ink-muted)]">
+          لغة البن
+        </div>
+      )}
+      <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
+        <div>
+          <h3 className="font-semibold text-[var(--ink)]">{product.name_ar}</h3>
+          {product.name_en ? (
+            <p className="mt-0.5 text-xs text-[var(--ink-muted)]">{product.name_en}</p>
+          ) : null}
+          {product.description_ar && (
+            <p className="mt-1 line-clamp-2 text-sm text-[var(--ink-muted)]">
+              {product.description_ar}
+            </p>
+          )}
+          {!product.is_available && (
+            <p className="mt-1 text-sm text-[var(--danger)]">غير متوفر</p>
+          )}
+        </div>
+        <p className="mt-2 text-base font-semibold text-[var(--accent)]">
+          {formatSar(product.price_minor)}
+        </p>
       </div>
-      <p className="shrink-0 text-base font-semibold text-[var(--accent)]">
-        {formatSar(product.price_minor)}
-      </p>
     </button>
   );
 }

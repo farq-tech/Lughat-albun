@@ -1,4 +1,5 @@
--- Seed: لغة البن / Lughat Albun Café
+-- Seed: لغة البن / Lughat Albun Café — real menu from store board
+-- Prices in halalas (SAR * 100). Images live in storage bucket product-images.
 
 insert into public.store_settings (
   name_ar, name_en, timezone, currency, tax_rate_bps, service_fee_minor,
@@ -17,65 +18,114 @@ insert into public.store_settings (
   '0500000000'
 );
 
--- 0=Sunday ... 6=Saturday (Postgres EXTRACT DOW)
 insert into public.store_hours (day_of_week, is_closed, open_time, close_time) values
-  (0, false, '07:00', '23:00'),
-  (1, false, '07:00', '23:00'),
-  (2, false, '07:00', '23:00'),
-  (3, false, '07:00', '23:00'),
-  (4, false, '07:00', '23:00'),
-  (5, false, '07:00', '00:00'),
-  (6, false, '08:00', '00:00');
+  (0, false, '00:00', '23:59'),
+  (1, false, '00:00', '23:59'),
+  (2, false, '00:00', '23:59'),
+  (3, false, '00:00', '23:59'),
+  (4, false, '00:00', '23:59'),
+  (5, false, '00:00', '23:59'),
+  (6, false, '00:00', '23:59');
 
+-- Categories
 insert into public.categories (id, slug, name_ar, name_en, sort_order) values
-  ('11111111-1111-1111-1111-111111111101', 'popular', 'الأكثر طلبًا', 'Popular', 1),
-  ('11111111-1111-1111-1111-111111111102', 'cold-coffee', 'قهوة باردة', 'Cold Coffee', 2),
-  ('11111111-1111-1111-1111-111111111103', 'hot-coffee', 'قهوة ساخنة', 'Hot Coffee', 3),
-  ('11111111-1111-1111-1111-111111111104', 'v60', 'V60', 'V60', 4),
-  ('11111111-1111-1111-1111-111111111105', 'bakery', 'مخبوزات', 'Bakery', 5),
-  ('11111111-1111-1111-1111-111111111106', 'desserts', 'حلويات', 'Desserts', 6);
+  ('a1111111-1111-4111-8111-111111111101', 'hot-drinks', 'المشروبات الساخنة', 'Hot Drinks', 1),
+  ('a1111111-1111-4111-8111-111111111102', 'cold-drinks', 'المشروبات الباردة', 'Cold Drinks', 2),
+  ('a1111111-1111-4111-8111-111111111103', 'drip-coffee', 'القهوة المقطرة', 'Drip Coffee', 3),
+  ('a1111111-1111-4111-8111-111111111104', 'coffee-tea', 'قهوة وشاي', 'Coffee & Tea', 4),
+  ('a1111111-1111-4111-8111-111111111105', 'mojito', 'موهيتو', 'Mojito', 5),
+  ('a1111111-1111-4111-8111-111111111106', 'ice-tea', 'آيس تي', 'Ice Tea', 6),
+  ('a1111111-1111-4111-8111-111111111107', 'desserts', 'الحلى', 'Desserts', 7),
+  ('a1111111-1111-4111-8111-111111111108', 'croissant', 'كروسان', 'Croissant', 8),
+  ('a1111111-1111-4111-8111-111111111109', 'sandwiches', 'ساندويتش', 'Sandwiches', 9),
+  ('a1111111-1111-4111-8111-111111111110', 'water', 'ماء', 'Water', 10);
 
+-- Products (image_path relative to product-images bucket)
 insert into public.products (
   id, category_id, slug, name_ar, name_en, description_ar, price_minor,
-  is_active, is_available, is_featured, sort_order
+  image_path, is_active, is_available, is_featured, sort_order
 ) values
-  ('22222222-2222-2222-2222-222222222201', '11111111-1111-1111-1111-111111111102', 'iced-latte', 'آيس لاتيه', 'Iced Latte', 'لاتيه بارد ناعم', 1800, true, true, true, 1),
-  ('22222222-2222-2222-2222-222222222202', '11111111-1111-1111-1111-111111111102', 'spanish-latte', 'سبانش لاتيه', 'Spanish Latte', 'سبانش لاتيه غني', 2200, true, true, true, 2),
-  ('22222222-2222-2222-2222-222222222203', '11111111-1111-1111-1111-111111111104', 'v60', 'V60', 'V60', 'قهوة مختصة تقطير', 2000, true, true, false, 3),
-  ('22222222-2222-2222-2222-222222222204', '11111111-1111-1111-1111-111111111103', 'americano', 'أمريكانو', 'Americano', 'أمريكانو كلاسيك', 1400, true, true, false, 4),
-  ('22222222-2222-2222-2222-222222222205', '11111111-1111-1111-1111-111111111103', 'cappuccino', 'كابتشينو', 'Cappuccino', 'كابتشينو كريمي', 1700, true, true, true, 5),
-  ('22222222-2222-2222-2222-222222222206', '11111111-1111-1111-1111-111111111106', 'cookies', 'كوكيز', 'Cookies', 'كوكيز طازج', 900, true, true, false, 6),
-  ('22222222-2222-2222-2222-222222222207', '11111111-1111-1111-1111-111111111105', 'croissant', 'كرواسون', 'Croissant', 'كرواسون زبدة', 1200, true, true, false, 7);
+  -- Hot
+  ('b2222222-2222-4222-8222-222222222201', 'a1111111-1111-4111-8111-111111111101', 'espresso', 'إسبرسو', 'Espresso', null, 900, 'menu/hot-drinks.jpg', true, true, false, 1),
+  ('b2222222-2222-4222-8222-222222222202', 'a1111111-1111-4111-8111-111111111101', 'americano-hot', 'أمريكانو', 'Americano', null, 1200, 'menu/hot-drinks.jpg', true, true, false, 2),
+  ('b2222222-2222-4222-8222-222222222203', 'a1111111-1111-4111-8111-111111111101', 'cortado', 'كورتادو', 'Cortado', null, 1300, 'menu/hot-drinks.jpg', true, true, false, 3),
+  ('b2222222-2222-4222-8222-222222222204', 'a1111111-1111-4111-8111-111111111101', 'macchiato', 'ماكياتو', 'Macchiato', null, 1400, 'menu/hot-drinks.jpg', true, true, false, 4),
+  ('b2222222-2222-4222-8222-222222222205', 'a1111111-1111-4111-8111-111111111101', 'flat-white', 'فلات وايت', 'Flat White', null, 1400, 'menu/hot-drinks.jpg', true, true, true, 5),
+  ('b2222222-2222-4222-8222-222222222206', 'a1111111-1111-4111-8111-111111111101', 'cappuccino', 'كابتشينو', 'Cappuccino', null, 1400, 'menu/hot-drinks.jpg', true, true, true, 6),
+  ('b2222222-2222-4222-8222-222222222207', 'a1111111-1111-4111-8111-111111111101', 'mocha', 'موكا', 'Mocha', null, 1400, 'menu/hot-drinks.jpg', true, true, false, 7),
+  ('b2222222-2222-4222-8222-222222222208', 'a1111111-1111-4111-8111-111111111101', 'caffe-latte-hot', 'كافيه لاتيه', 'Caffe Latte', null, 1400, 'menu/hot-drinks.jpg', true, true, false, 8),
+  ('b2222222-2222-4222-8222-222222222209', 'a1111111-1111-4111-8111-111111111101', 'spanish-latte-hot', 'سبانش لاتيه', 'Spanish Latte', null, 1600, 'menu/hot-drinks.jpg', true, true, true, 9),
+  ('b2222222-2222-4222-8222-222222222210', 'a1111111-1111-4111-8111-111111111101', 'caramel-latte-hot', 'كراميل لاتيه', 'Caramel Latte', null, 1600, 'menu/hot-drinks.jpg', true, true, false, 10),
+  ('b2222222-2222-4222-8222-222222222211', 'a1111111-1111-4111-8111-111111111101', 'pistachio-latte-hot', 'بستاشيو لاتيه', 'Pistachio Latte', null, 1800, 'menu/hot-drinks.jpg', true, true, true, 11),
+  ('b2222222-2222-4222-8222-222222222212', 'a1111111-1111-4111-8111-111111111101', 'hot-chocolate', 'هوت شوكليت', 'Hot Chocolate', null, 2000, 'menu/hot-drinks.jpg', true, true, false, 12),
+  ('b2222222-2222-4222-8222-222222222213', 'a1111111-1111-4111-8111-111111111101', 'turkish-coffee', 'قهوة تركية', 'Turkish Coffee', null, 1200, 'menu/hot-drinks.jpg', true, true, false, 13),
+  -- Cold
+  ('b2222222-2222-4222-8222-222222222221', 'a1111111-1111-4111-8111-111111111102', 'americano-cold', 'أمريكانو', 'Americano', null, 1300, 'menu/cold-drinks.jpg', true, true, false, 1),
+  ('b2222222-2222-4222-8222-222222222222', 'a1111111-1111-4111-8111-111111111102', 'caffe-latte-cold', 'كافيه لاتيه', 'Caffe Latte', null, 1800, 'menu/cold-drinks.jpg', true, true, true, 2),
+  ('b2222222-2222-4222-8222-222222222223', 'a1111111-1111-4111-8111-111111111102', 'spanish-latte-cold', 'سبانش لاتيه', 'Spanish Latte', null, 2000, 'menu/cold-drinks.jpg', true, true, true, 3),
+  ('b2222222-2222-4222-8222-222222222224', 'a1111111-1111-4111-8111-111111111102', 'caramel-latte-cold', 'كراميل لاتيه', 'Caramel Latte', null, 2000, 'menu/cold-drinks.jpg', true, true, false, 4),
+  ('b2222222-2222-4222-8222-222222222225', 'a1111111-1111-4111-8111-111111111102', 'pistachio-latte-cold', 'بستاشيو لاتيه', 'Pistachio Latte', null, 2200, 'menu/cold-drinks.jpg', true, true, true, 5),
+  ('b2222222-2222-4222-8222-222222222226', 'a1111111-1111-4111-8111-111111111102', 'white-mocha', 'وايت موكا', 'White Mocha', null, 2000, 'menu/cold-drinks.jpg', true, true, false, 6),
+  -- Drip
+  ('b2222222-2222-4222-8222-222222222231', 'a1111111-1111-4111-8111-111111111103', 'v60', 'V60', 'V60', null, 1400, 'menu/drip-coffee.jpg', true, true, true, 1),
+  ('b2222222-2222-4222-8222-222222222232', 'a1111111-1111-4111-8111-111111111103', 'chemex', 'كيمكس', 'Chemex', null, 1400, 'menu/drip-coffee.jpg', true, true, false, 2),
+  ('b2222222-2222-4222-8222-222222222233', 'a1111111-1111-4111-8111-111111111103', 'ice-drip', 'آيس دريب', 'Ice Drip', null, 1600, 'menu/drip-coffee.jpg', true, true, false, 3),
+  -- Coffee & tea
+  ('b2222222-2222-4222-8222-222222222241', 'a1111111-1111-4111-8111-111111111104', 'red-tea', 'شاي أحمر', 'Red Tea', null, 1000, 'menu/hot-drinks.jpg', true, true, false, 1),
+  ('b2222222-2222-4222-8222-222222222242', 'a1111111-1111-4111-8111-111111111104', 'green-tea', 'شاي أخضر', 'Green Tea', null, 1000, 'menu/hot-drinks.jpg', true, true, false, 2),
+  ('b2222222-2222-4222-8222-222222222243', 'a1111111-1111-4111-8111-111111111104', 'karak', 'كرك', 'Karak', null, 1000, 'menu/hot-drinks.jpg', true, true, false, 3),
+  ('b2222222-2222-4222-8222-222222222244', 'a1111111-1111-4111-8111-111111111104', 'saudi-coffee', 'قهوة سعودية', 'Saudi Coffee', null, 1000, 'menu/hot-drinks.jpg', true, true, true, 4),
+  ('b2222222-2222-4222-8222-222222222245', 'a1111111-1111-4111-8111-111111111104', 'cold-roselle', 'كركديه بارد', 'Cold Roselle', null, 1600, 'menu/cold-drinks.jpg', true, true, false, 5),
+  -- Mojito
+  ('b2222222-2222-4222-8222-222222222251', 'a1111111-1111-4111-8111-111111111105', 'mojito-passion', 'موهيتو باشن', 'Passion Mojito', null, 2000, 'menu/cold-drinks.jpg', true, true, false, 1),
+  ('b2222222-2222-4222-8222-222222222252', 'a1111111-1111-4111-8111-111111111105', 'mojito-strawberry', 'موهيتو فراولة', 'Strawberry Mojito', null, 2000, 'menu/cold-drinks.jpg', true, true, false, 2),
+  ('b2222222-2222-4222-8222-222222222253', 'a1111111-1111-4111-8111-111111111105', 'mojito-peach', 'موهيتو خوخ', 'Peach Mojito', null, 2000, 'menu/cold-drinks.jpg', true, true, false, 3),
+  ('b2222222-2222-4222-8222-222222222254', 'a1111111-1111-4111-8111-111111111105', 'mojito-signature', 'موهيتو سيجنتشر', 'Signature Mojito', null, 2000, 'menu/cold-drinks.jpg', true, true, true, 4),
+  -- Ice tea
+  ('b2222222-2222-4222-8222-222222222261', 'a1111111-1111-4111-8111-111111111106', 'ice-tea-mix', 'آيس تي مكس', 'Ice Tea Mix', null, 1600, 'menu/cold-drinks.jpg', true, true, false, 1),
+  ('b2222222-2222-4222-8222-222222222262', 'a1111111-1111-4111-8111-111111111106', 'ice-tea-peach', 'آيس تي خوخ', 'Peach Ice Tea', null, 1600, 'menu/cold-drinks.jpg', true, true, false, 2),
+  -- Desserts
+  ('b2222222-2222-4222-8222-222222222271', 'a1111111-1111-4111-8111-111111111107', 'brownie-cheesecake', 'براوني تشيز كيك', 'Brownie Cheesecake', null, 2200, 'menu/cafe-hero.jpg', true, true, false, 1),
+  ('b2222222-2222-4222-8222-222222222272', 'a1111111-1111-4111-8111-111111111107', 'dates-cake', 'كيكة تمر', 'Dates Cake', null, 2400, 'menu/cafe-hero.jpg', true, true, false, 2),
+  ('b2222222-2222-4222-8222-222222222273', 'a1111111-1111-4111-8111-111111111107', 'molten-chocolate', 'مولتن تشوكليت', 'Molten Chocolate', null, 2400, 'menu/cafe-hero.jpg', true, true, true, 3),
+  ('b2222222-2222-4222-8222-222222222274', 'a1111111-1111-4111-8111-111111111107', 'red-velvet', 'ريد فيلفيت', 'Red Velvet', null, 2200, 'menu/cafe-hero.jpg', true, true, false, 4),
+  ('b2222222-2222-4222-8222-222222222275', 'a1111111-1111-4111-8111-111111111107', 'tiramisu', 'تيراميسو', 'Tiramisu', null, 2200, 'menu/cafe-hero.jpg', true, true, false, 5),
+  ('b2222222-2222-4222-8222-222222222276', 'a1111111-1111-4111-8111-111111111107', 'cookies', 'كوكيز', 'Cookies', null, 1000, 'menu/cafe-hero.jpg', true, true, false, 6),
+  ('b2222222-2222-4222-8222-222222222277', 'a1111111-1111-4111-8111-111111111107', 'brownies', 'براونيز', 'Brownies', null, 1000, 'menu/cafe-hero.jpg', true, true, false, 7),
+  -- Croissant
+  ('b2222222-2222-4222-8222-222222222281', 'a1111111-1111-4111-8111-111111111108', 'croissant-plain', 'كروسان سادة', 'Plain Croissant', null, 1200, 'menu/cafe-hero.jpg', true, true, false, 1),
+  ('b2222222-2222-4222-8222-222222222282', 'a1111111-1111-4111-8111-111111111108', 'croissant-cheese', 'كروسان جبن', 'Cheese Croissant', null, 1400, 'menu/cafe-hero.jpg', true, true, false, 2),
+  ('b2222222-2222-4222-8222-222222222283', 'a1111111-1111-4111-8111-111111111108', 'croissant-berries', 'كروسان توت', 'Berries Croissant', null, 1400, 'menu/cafe-hero.jpg', true, true, false, 3),
+  -- Sandwiches
+  ('b2222222-2222-4222-8222-222222222291', 'a1111111-1111-4111-8111-111111111109', 'halloumi', 'حلومي', 'Halloumi', null, 1800, 'menu/cafe-hero.jpg', true, true, false, 1),
+  ('b2222222-2222-4222-8222-222222222292', 'a1111111-1111-4111-8111-111111111109', 'club', 'كلوب', 'Club', null, 2000, 'menu/cafe-hero.jpg', true, true, true, 2),
+  ('b2222222-2222-4222-8222-222222222293', 'a1111111-1111-4111-8111-111111111109', 'tuna', 'تونة', 'Tuna', null, 1800, 'menu/cafe-hero.jpg', true, true, false, 3),
+  ('b2222222-2222-4222-8222-222222222294', 'a1111111-1111-4111-8111-111111111109', 'chicken', 'دجاج', 'Chicken', null, 2000, 'menu/cafe-hero.jpg', true, true, false, 4),
+  -- Water
+  ('b2222222-2222-4222-8222-222222222299', 'a1111111-1111-4111-8111-111111111110', 'mineral-water', 'ماء معدني', 'Mineral Water', null, 100, 'menu/logo.png', true, true, false, 1);
 
+-- Modifiers
 insert into public.modifier_groups (id, slug, name_ar, name_en, required, min_selection, max_selection, sort_order) values
-  ('33333333-3333-3333-3333-333333333301', 'size', 'الحجم', 'Size', true, 1, 1, 1),
-  ('33333333-3333-3333-3333-333333333302', 'milk', 'الحليب', 'Milk', true, 1, 1, 2),
-  ('33333333-3333-3333-3333-333333333303', 'extra-shot', 'شوت إضافي', 'Extra Shot', false, 0, 2, 3),
-  ('33333333-3333-3333-3333-333333333304', 'ice', 'الثلج', 'Ice', false, 0, 1, 4);
+  ('c3333333-3333-4333-8333-333333333301', 'size', 'الحجم', 'Size', true, 1, 1, 1),
+  ('c3333333-3333-4333-8333-333333333302', 'milk', 'الحليب', 'Milk', true, 1, 1, 2),
+  ('c3333333-3333-4333-8333-333333333303', 'extra-shot', 'شوت إضافي', 'Extra Shot', false, 0, 2, 3);
 
 insert into public.modifier_options (id, group_id, slug, name_ar, name_en, price_delta_minor, sort_order) values
-  ('44444444-4444-4444-4444-444444444401', '33333333-3333-3333-3333-333333333301', 'regular', 'عادي', 'Regular', 0, 1),
-  ('44444444-4444-4444-4444-444444444402', '33333333-3333-3333-3333-333333333301', 'large', 'كبير', 'Large', 300, 2),
-  ('44444444-4444-4444-4444-444444444403', '33333333-3333-3333-3333-333333333302', 'full-fat', 'حليب كامل', 'Full Fat', 0, 1),
-  ('44444444-4444-4444-4444-444444444404', '33333333-3333-3333-3333-333333333302', 'oat', 'شوفان', 'Oat Milk', 200, 2),
-  ('44444444-4444-4444-4444-444444444405', '33333333-3333-3333-3333-333333333302', 'almond', 'لوز', 'Almond', 200, 3),
-  ('44444444-4444-4444-4444-444444444406', '33333333-3333-3333-3333-333333333303', 'one-shot', 'شوت واحد', 'One Shot', 300, 1),
-  ('44444444-4444-4444-4444-444444444407', '33333333-3333-3333-3333-333333333303', 'two-shots', 'شوتين', 'Two Shots', 500, 2),
-  ('44444444-4444-4444-4444-444444444408', '33333333-3333-3333-3333-333333333304', 'extra-ice', 'ثلج زيادة', 'Extra Ice', 0, 1);
+  ('d4444444-4444-4444-8444-444444444401', 'c3333333-3333-4333-8333-333333333301', 'regular', 'عادي', 'Regular', 0, 1),
+  ('d4444444-4444-4444-8444-444444444402', 'c3333333-3333-4333-8333-333333333301', 'large', 'كبير', 'Large', 300, 2),
+  ('d4444444-4444-4444-8444-444444444403', 'c3333333-3333-4333-8333-333333333302', 'full-fat', 'حليب كامل', 'Full Fat', 0, 1),
+  ('d4444444-4444-4444-8444-444444444404', 'c3333333-3333-4333-8333-333333333302', 'oat', 'شوفان', 'Oat Milk', 200, 2),
+  ('d4444444-4444-4444-8444-444444444405', 'c3333333-3333-4333-8333-333333333302', 'almond', 'لوز', 'Almond', 200, 3),
+  ('d4444444-4444-4444-8444-444444444406', 'c3333333-3333-4333-8333-333333333303', 'one-shot', 'شوت واحد', 'One Shot', 300, 1);
 
--- Coffee products get size/milk/extra-shot; cold get ice
-insert into public.product_modifier_groups (product_id, modifier_group_id, sort_order) values
-  ('22222222-2222-2222-2222-222222222201', '33333333-3333-3333-3333-333333333301', 1),
-  ('22222222-2222-2222-2222-222222222201', '33333333-3333-3333-3333-333333333302', 2),
-  ('22222222-2222-2222-2222-222222222201', '33333333-3333-3333-3333-333333333303', 3),
-  ('22222222-2222-2222-2222-222222222201', '33333333-3333-3333-3333-333333333304', 4),
-  ('22222222-2222-2222-2222-222222222202', '33333333-3333-3333-3333-333333333301', 1),
-  ('22222222-2222-2222-2222-222222222202', '33333333-3333-3333-3333-333333333302', 2),
-  ('22222222-2222-2222-2222-222222222202', '33333333-3333-3333-3333-333333333303', 3),
-  ('22222222-2222-2222-2222-222222222202', '33333333-3333-3333-3333-333333333304', 4),
-  ('22222222-2222-2222-2222-222222222203', '33333333-3333-3333-3333-333333333301', 1),
-  ('22222222-2222-2222-2222-222222222204', '33333333-3333-3333-3333-333333333301', 1),
-  ('22222222-2222-2222-2222-222222222204', '33333333-3333-3333-3333-333333333303', 2),
-  ('22222222-2222-2222-2222-222222222205', '33333333-3333-3333-3333-333333333301', 1),
-  ('22222222-2222-2222-2222-222222222205', '33333333-3333-3333-3333-333333333302', 2),
-  ('22222222-2222-2222-2222-222222222205', '33333333-3333-3333-3333-333333333303', 3);
+-- Attach size/milk to latte-style drinks
+insert into public.product_modifier_groups (product_id, modifier_group_id, sort_order)
+select p.id, g.id, g.sort_order
+from public.products p
+cross join public.modifier_groups g
+where p.slug in (
+  'caffe-latte-hot','spanish-latte-hot','caramel-latte-hot','pistachio-latte-hot',
+  'caffe-latte-cold','spanish-latte-cold','caramel-latte-cold','pistachio-latte-cold',
+  'cappuccino','flat-white','mocha','white-mocha'
+)
+and g.slug in ('size','milk','extra-shot');

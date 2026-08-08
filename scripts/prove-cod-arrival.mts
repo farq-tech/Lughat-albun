@@ -10,7 +10,7 @@
  */
 import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
-import { canUpdateCustomerPresence } from "../src/domains/orders/customer-presence.ts";
+import { canUpdateCustomerPresence } from "../src/domains/orders/customer-presence";
 
 const env = Object.fromEntries(
   readFileSync(".env.local", "utf8")
