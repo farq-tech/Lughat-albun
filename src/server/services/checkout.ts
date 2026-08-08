@@ -77,11 +77,20 @@ export async function createCheckoutAndPay(input: {
     input.checkout.clientTotalMinor,
   );
 
+  // Sold out only when admin toggled is_available=false — never auto-decrements.
   if (priced.totals.unavailableItems.length > 0) {
     throw new DomainError(
       "ITEM_UNAVAILABLE",
-      "المنتج نفد قبل إكمال الطلب.",
+      "أحد المنتجات غير متوفر حاليًا (الأدمن عطّله).",
       { unavailableItems: priced.totals.unavailableItems, cart: priced },
+    );
+  }
+
+  if (priced.totals.invalidItems.length > 0) {
+    throw new DomainError(
+      "CART_INVALID",
+      "في مشكلة بخيارات أحد المنتجات — ارجع للسلة وعدّل الطلب.",
+      { invalidItems: priced.totals.invalidItems, cart: priced },
     );
   }
 

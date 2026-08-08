@@ -167,7 +167,7 @@ describe("priceCart", () => {
     expect(canCheckout(result)).toBe(false);
   });
 
-  it("marks unavailable products", () => {
+  it("marks unavailable products only when admin toggles is_available", () => {
     const c = catalog();
     const p = c.products.get("22222222-2222-2222-2222-222222222201")!;
     c.products.set(p.id, { ...p, is_available: false });
@@ -190,7 +190,26 @@ describe("priceCart", () => {
       ],
       c,
     );
-    expect(result.totals.unavailableItems.length).toBeGreaterThan(0);
+    expect(result.totals.unavailableItems).toEqual(["آيس لاتيه"]);
+    expect(result.totals.invalidItems).toEqual([]);
     expect(canCheckout(result)).toBe(false);
+  });
+
+  it("auto-fills required modifiers instead of treating as sold out", () => {
+    const result = priceCart(
+      [
+        {
+          productId: "22222222-2222-2222-2222-222222222201",
+          quantity: 1,
+          modifiers: [],
+        },
+      ],
+      catalog(),
+    );
+    // Defaults: large (+300) + oat (+200) = 2300
+    expect(result.totals.unavailableItems).toEqual([]);
+    expect(result.totals.invalidItems).toEqual([]);
+    expect(result.totals.subtotalMinor).toBe(2300);
+    expect(canCheckout(result)).toBe(true);
   });
 });

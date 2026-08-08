@@ -312,7 +312,7 @@ function ProductCard({
           </p>
         )}
         {!product.is_available && (
-          <p className="mt-1 text-sm text-[var(--danger)]">غير متوفر</p>
+          <p className="mt-1 text-sm text-[var(--danger)]">نفد</p>
         )}
       </div>
       <p className="shrink-0 text-base font-semibold text-[var(--accent)]">
