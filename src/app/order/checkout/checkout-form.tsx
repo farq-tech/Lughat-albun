@@ -36,15 +36,16 @@ const PAYMENT_OPTIONS: {
   preferred?: boolean;
   hint?: string;
 }[] = [
-  { id: "apple_pay", label: "Apple Pay", preferred: true },
-  { id: "mada", label: "مدى" },
-  { id: "visa", label: "Visa" },
-  { id: "mastercard", label: "Mastercard" },
   {
     id: "cash_on_delivery",
     label: "الدفع عند الاستلام",
+    preferred: true,
     hint: "ادفع عند استلام طلبك.",
   },
+  { id: "apple_pay", label: "Apple Pay" },
+  { id: "mada", label: "مدى" },
+  { id: "visa", label: "Visa" },
+  { id: "mastercard", label: "Mastercard" },
 ];
 
 type CheckoutFormProps = {
@@ -59,7 +60,8 @@ export function CheckoutForm({ source, savedVehicle }: CheckoutFormProps) {
 
   const [phone, setPhone] = useState("");
   const [firstName, setFirstName] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("apple_pay");
+  const [paymentMethod, setPaymentMethod] =
+    useState<PaymentMethod>("cash_on_delivery");
   const [useSavedVehicle, setUseSavedVehicle] = useState(!!savedVehicle);
   const [makeModel, setMakeModel] = useState(savedVehicle?.make_model ?? "");
   const [color, setColor] = useState(savedVehicle?.color ?? "");

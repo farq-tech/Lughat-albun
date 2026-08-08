@@ -116,11 +116,9 @@ export function OrderTracker({
     PRESENCE_ALLOWED_ORDER_STATUSES as readonly string[]
   ).includes(order.status);
   const availablePresenceActions = presenceAllowed
-    ? nextPresenceActions(presence).filter((action) =>
-        action === "claimed_received" ? order.status === "READY" : true,
-      )
+    ? nextPresenceActions(presence)
     : [];
-  const showPresenceActions = availablePresenceActions.length > 0;
+  const showPresenceActions = availablePresenceActions.includes("outside");
   const showLocationHelp =
     order.location_help_requested &&
     (presence === "outside" || order.status === "CUSTOMER_ARRIVED");
@@ -246,47 +244,17 @@ export function OrderTracker({
       )}
 
       {showPresenceActions ? (
-        <div className="mt-8 space-y-3 animate-fade-up stagger-3">
-          {availablePresenceActions.includes("on_the_way") ? (
-            <Button
-              type="button"
-              size="lg"
-              variant="primary"
-              className="w-full"
-              disabled={pending}
-              onClick={() => setPresence("on_the_way")}
-            >
-              أنا بالطريق
-            </Button>
-          ) : null}
-          {availablePresenceActions.includes("outside") ? (
-            <Button
-              type="button"
-              size="lg"
-              variant={
-                availablePresenceActions.includes("on_the_way")
-                  ? "secondary"
-                  : "primary"
-              }
-              className="w-full"
-              disabled={pending}
-              onClick={() => setPresence("outside")}
-            >
-              أنا برا
-            </Button>
-          ) : null}
-          {availablePresenceActions.includes("claimed_received") ? (
-            <Button
-              type="button"
-              size="lg"
-              variant="secondary"
-              className="w-full"
-              disabled={pending}
-              onClick={() => setPresence("claimed_received")}
-            >
-              تم الاستلام
-            </Button>
-          ) : null}
+        <div className="mt-8 animate-fade-up stagger-3">
+          <Button
+            type="button"
+            size="lg"
+            variant="primary"
+            className="w-full"
+            disabled={pending}
+            onClick={() => setPresence("outside")}
+          >
+            أنا برا
+          </Button>
         </div>
       ) : null}
 

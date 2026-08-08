@@ -65,10 +65,10 @@ describe("customer arrival presence", () => {
     ).toBe(false);
   });
 
-  it("exposes the correct next UI actions", () => {
-    expect(nextPresenceActions("none")).toEqual(["on_the_way", "outside"]);
+  it("exposes only أنا برا as the customer UI action", () => {
+    expect(nextPresenceActions("none")).toEqual(["outside"]);
     expect(nextPresenceActions("on_the_way")).toEqual(["outside"]);
-    expect(nextPresenceActions("outside")).toEqual(["claimed_received"]);
+    expect(nextPresenceActions("outside")).toEqual([]);
     expect(nextPresenceActions("claimed_received")).toEqual([]);
   });
 });

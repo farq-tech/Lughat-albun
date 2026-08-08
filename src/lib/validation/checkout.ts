@@ -48,7 +48,7 @@ export const checkoutSchema = z.object({
       "mastercard",
       "cash_on_delivery",
     ])
-    .default("apple_pay"),
+    .default("cash_on_delivery"),
   paymentSimulate: z
     .enum(["success", "failure", "cancel", "delayed"])
     .optional(),
