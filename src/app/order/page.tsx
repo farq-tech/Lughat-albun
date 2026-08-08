@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { SocialLinks } from "@/components/brand/social-links";
 import { Button } from "@/components/ui/button";
 import { getStoreAvailability } from "@/server/services/store";
 
@@ -102,6 +103,7 @@ export default async function OrderLandingPage({ searchParams }: PageProps) {
         <p className="text-center text-sm text-[var(--ink-muted)]">
           طلب واستلام من السيارة
         </p>
+        <SocialLinks className="pt-2" />
       </footer>
     </main>
   );
