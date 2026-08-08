@@ -23,6 +23,12 @@ export type PaymentStatus =
 export type ActorType = "CUSTOMER" | "STAFF" | "SYSTEM" | "PAYMENT_PROVIDER";
 export type OrderSource = "qr" | "link" | "repeat" | "admin";
 
+export type CustomerPresence =
+  | "none"
+  | "on_the_way"
+  | "outside"
+  | "claimed_received";
+
 export type MoneyMinor = number;
 
 export interface StoreSettings {
@@ -147,6 +153,9 @@ export interface OrderRecord {
   location_hint: string | null;
   flasher_confirmed: boolean;
   customer_on_the_way: boolean;
+  /** Present after customer_presence migration; treat missing as "none". */
+  customer_presence?: CustomerPresence | null;
+  customer_presence_updated_at?: string | null;
   location_help_requested: boolean;
   subtotal_minor: number;
   tax_amount_minor: number;

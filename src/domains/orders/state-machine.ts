@@ -1,5 +1,19 @@
 import type { OrderStatus } from "@/types/database";
 
+/**
+ * Kitchen / fulfillment order statuses.
+ * Display mapping (product language → DB):
+ *   NEW / جديد          → PAID
+ *   PREPARING / جاري التجهيز → PREPARING
+ *   READY / جاهز        → READY
+ *   COMPLETED / مكتمل   → DELIVERED
+ *
+ * Customer pickup signals (بالطريق / أنا برا / تم الاستلام) live in
+ * `customer_presence`, not in this status enum.
+ *
+ * Legacy statuses ACCEPTED, CUSTOMER_ARRIVED, OUT_FOR_DELIVERY remain
+ * for historical rows and safe completion paths.
+ */
 export const ORDER_STATUSES: OrderStatus[] = [
   "PENDING_PAYMENT",
   "PAID",
@@ -13,14 +27,15 @@ export const ORDER_STATUSES: OrderStatus[] = [
   "REFUNDED",
 ];
 
-/** Allowed transitions. ON_MY_WAY is an event flag, not a primary status. */
 export const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   PENDING_PAYMENT: ["PAID", "CANCELLED"],
-  PAID: ["ACCEPTED", "CANCELLED", "REFUNDED"],
+  // New flow: accept → preparing. Legacy: accept → ACCEPTED still allowed.
+  PAID: ["PREPARING", "ACCEPTED", "CANCELLED", "REFUNDED"],
   ACCEPTED: ["PREPARING", "CANCELLED", "REFUNDED"],
   PREPARING: ["READY", "CANCELLED", "REFUNDED"],
-  READY: ["CUSTOMER_ARRIVED", "CANCELLED", "REFUNDED"],
-  CUSTOMER_ARRIVED: ["OUT_FOR_DELIVERY", "CANCELLED", "REFUNDED"],
+  // New flow: staff completes from READY. Legacy arrival statuses still completable.
+  READY: ["DELIVERED", "CUSTOMER_ARRIVED", "CANCELLED", "REFUNDED"],
+  CUSTOMER_ARRIVED: ["DELIVERED", "OUT_FOR_DELIVERY", "CANCELLED", "REFUNDED"],
   OUT_FOR_DELIVERY: ["DELIVERED", "CANCELLED", "REFUNDED"],
   DELIVERED: [],
   CANCELLED: [],
@@ -29,6 +44,10 @@ export const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 
 export type TransitionActor = "CUSTOMER" | "STAFF" | "SYSTEM" | "PAYMENT_PROVIDER";
 
+/**
+ * Customer no longer advances kitchen status for pickup.
+ * Pickup signals use customer_presence domain instead.
+ */
 const ACTOR_PERMISSIONS: Record<TransitionActor, OrderStatus[]> = {
   PAYMENT_PROVIDER: ["PAID"],
   SYSTEM: ["PAID", "CANCELLED", "REFUNDED"],
@@ -41,7 +60,8 @@ const ACTOR_PERMISSIONS: Record<TransitionActor, OrderStatus[]> = {
     "CANCELLED",
     "REFUNDED",
   ],
-  CUSTOMER: ["CUSTOMER_ARRIVED", "CANCELLED"],
+  // Customer cannot change kitchen status in the new flow.
+  CUSTOMER: ["CANCELLED"],
 };
 
 export type TransitionResult =
@@ -100,17 +120,14 @@ export function staffPrimaryAction(status: OrderStatus): {
 } | null {
   switch (status) {
     case "PAID":
-      return { label: "ابدأ", next: "ACCEPTED" };
     case "ACCEPTED":
-      return { label: "تحت التحضير", next: "PREPARING" };
+      return { label: "قبول الطلب", next: "PREPARING" };
     case "PREPARING":
-      return { label: "جاهز", next: "READY" };
-    case "CUSTOMER_ARRIVED":
-      return { label: "خرجت له", next: "OUT_FOR_DELIVERY" };
-    case "OUT_FOR_DELIVERY":
-      return { label: "تم التسليم", next: "DELIVERED" };
+      return { label: "الطلب جاهز", next: "READY" };
     case "READY":
-      return null;
+    case "CUSTOMER_ARRIVED":
+    case "OUT_FOR_DELIVERY":
+      return { label: "تم تسليم الطلب", next: "DELIVERED" };
     default:
       return null;
   }
@@ -124,26 +141,50 @@ export function customerStatusCopy(status: OrderStatus): {
     case "PENDING_PAYMENT":
       return { title: "بانتظار الدفع", body: "كمّل الدفع عشان نبدأ نجهز طلبك." };
     case "PAID":
+      return { title: "طلبك وصلنا", body: "بانتظار قبول الطلب من المحل." };
     case "ACCEPTED":
-      return { title: "طلبك وصلنا ☕", body: "جاري تجهيز طلبك." };
     case "PREPARING":
-      return { title: "جاري تجهيز طلبك", body: "إذا قربت اضغط أنا بالطريق." };
+      return { title: "جاري التجهيز", body: "قاعدين نجهّز طلبك الحين." };
     case "READY":
       return {
-        title: "قهوتك جاهزة ☕",
-        body: "إذا وصلت عند لغة البن، شغّل الفلشر واضغط وصلت.",
+        title: "جاهز",
+        body: "طلبك جاهز. حدّثنا وين وصلت.",
       };
     case "CUSTOMER_ARRIVED":
       return { title: "عرفناك", body: "موظفنا جايك." };
     case "OUT_FOR_DELIVERY":
       return { title: "طلبك طالع لك", body: "خلك بالسيارة، جايك الحين." };
     case "DELIVERED":
-      return { title: "بالعافية", body: "تستاهل. نراك مرة ثانية." };
+      return { title: "تم تسليم الطلب", body: "بالعافية. نراك مرة ثانية." };
     case "CANCELLED":
       return { title: "الطلب ملغي", body: "إذا تبي، اطلب من جديد بسهولة." };
     case "REFUNDED":
       return { title: "تم الاسترجاع", body: "المبلغ راجع لك." };
     default:
       return { title: "طلبك", body: "" };
+  }
+}
+
+export function staffStatusLabel(status: OrderStatus): string {
+  switch (status) {
+    case "PAID":
+      return "جديد";
+    case "ACCEPTED":
+    case "PREPARING":
+      return "جاري التجهيز";
+    case "READY":
+      return "جاهز";
+    case "CUSTOMER_ARRIVED":
+      return "وصل";
+    case "OUT_FOR_DELIVERY":
+      return "طالع للعميل";
+    case "DELIVERED":
+      return "مكتمل";
+    case "CANCELLED":
+      return "ملغي";
+    case "REFUNDED":
+      return "مسترجع";
+    default:
+      return status;
   }
 }

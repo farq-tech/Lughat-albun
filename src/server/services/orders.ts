@@ -1,10 +1,25 @@
-import { canTransition, eventTypeForTransition } from "@/domains/orders/state-machine";
+import {
+  canUpdateCustomerPresence,
+  eventTypeForPresence,
+  type CustomerPresence,
+  type CustomerPresenceAction,
+} from "@/domains/orders/customer-presence";
 import { hashToken } from "@/lib/auth/customer-token";
 import { log, newRequestId } from "@/lib/logging";
 import { rateLimit } from "@/lib/rate-limit";
 import { createServiceClient } from "@/lib/supabase/server";
 import { DomainError } from "./checkout";
-import type { OrderStatus } from "@/types/database";
+
+function normalizePresence(value: unknown): CustomerPresence {
+  if (
+    value === "on_the_way" ||
+    value === "outside" ||
+    value === "claimed_received"
+  ) {
+    return value;
+  }
+  return "none";
+}
 
 export async function getOrderForCustomer(input: {
   publicOrderNumber: number;
@@ -36,73 +51,133 @@ export async function getOrderForCustomer(input: {
     .eq("order_id", order.id)
     .order("created_at", { ascending: true });
 
-  return { order, items: items ?? [], events: events ?? [] };
+  return {
+    order: {
+      ...order,
+      customer_presence: normalizePresence(order.customer_presence),
+    },
+    items: items ?? [],
+    events: events ?? [],
+  };
 }
 
-export async function markOnTheWay(input: {
+export async function setCustomerPresence(input: {
   publicOrderNumber: number;
   accessToken: string;
-}) {
-  const { order } = await getOrderForCustomer(input);
-  if (order.customer_on_the_way) {
-    return { ok: true as const, idempotent: true };
-  }
-
-  const allowed: OrderStatus[] = ["PAID", "ACCEPTED", "PREPARING", "READY"];
-  if (!allowed.includes(order.status)) {
-    throw new DomainError("INVALID_STATE", "ما نقدر نسجل هالخطوة الحين");
-  }
-
-  const supabase = createServiceClient();
-  await supabase
-    .from("orders")
-    .update({
-      customer_on_the_way: true,
-      on_my_way_at: new Date().toISOString(),
-    })
-    .eq("id", order.id);
-
-  await supabase.from("order_events").insert({
-    order_id: order.id,
-    event_type: "CUSTOMER_ON_THE_WAY",
-    from_status: order.status,
-    to_status: order.status,
-    actor_type: "CUSTOMER",
-    metadata: {},
-  });
-
-  return { ok: true as const, idempotent: false };
-}
-
-export async function markArrived(input: {
-  publicOrderNumber: number;
-  accessToken: string;
-  confirmVehicle?: boolean;
-  vehicleUpdate?: { makeModel: string; color: string; plateHint?: string | null };
+  presence: CustomerPresenceAction;
 }) {
   const requestId = newRequestId();
   const rl = rateLimit(
-    `arrived:${input.publicOrderNumber}:${hashToken(input.accessToken).slice(0, 8)}`,
-    10,
+    `presence:${input.publicOrderNumber}:${hashToken(input.accessToken).slice(0, 8)}`,
+    20,
     60_000,
   );
   if (!rl.ok) throw new DomainError("RATE_LIMITED", "حاول مرة ثانية بعد شوي");
 
   const { order } = await getOrderForCustomer(input);
+  const current = normalizePresence(order.customer_presence);
+
+  const allowed = canUpdateCustomerPresence({
+    orderStatus: order.status,
+    current,
+    next: input.presence,
+  });
+
+  if (!allowed.ok) {
+    if (allowed.code === "NOT_READY") {
+      throw new DomainError(
+        "NOT_READY",
+        "طلبك بعد مو جاهز. بنحدث الحالة تلقائيًا.",
+      );
+    }
+    if (allowed.code === "ORDER_COMPLETED") {
+      throw new DomainError("ORDER_COMPLETED", "الطلب مكتمل، ما نقدر نغيّر الحالة");
+    }
+    throw new DomainError("INVALID_STATE", "ما نقدر نسجل هالخطوة الحين");
+  }
+
+  if (allowed.idempotent) {
+    return { ok: true as const, idempotent: true, presence: current };
+  }
+
+  const now = new Date().toISOString();
   const supabase = createServiceClient();
+  const patch: Record<string, unknown> = {
+    customer_presence: input.presence,
+    customer_presence_updated_at: now,
+    customer_on_the_way:
+      input.presence === "on_the_way" || input.presence === "outside"
+        ? true
+        : order.customer_on_the_way,
+  };
 
-  if (order.status === "CUSTOMER_ARRIVED") {
-    return { ok: true as const, idempotent: true, order };
+  if (input.presence === "on_the_way") {
+    patch.on_my_way_at = order.on_my_way_at ?? now;
+  }
+  if (input.presence === "outside") {
+    patch.customer_arrived_at = order.customer_arrived_at ?? now;
+    patch.flasher_confirmed = true;
   }
 
-  if (order.status !== "READY") {
-    throw new DomainError(
-      "NOT_READY",
-      "طلبك بعد مو جاهز. بنحدث الحالة تلقائيًا.",
-    );
+  const { error } = await supabase
+    .from("orders")
+    .update(patch)
+    .eq("id", order.id)
+    .eq("status", order.status);
+
+  if (error) {
+    throw new DomainError("UPDATE_FAILED", "صار خطأ، حاول مرة ثانية");
   }
 
+  await supabase.from("order_events").insert({
+    order_id: order.id,
+    event_type: eventTypeForPresence(input.presence),
+    from_status: order.status,
+    to_status: order.status,
+    actor_type: "CUSTOMER",
+    metadata: {
+      fromPresence: current,
+      toPresence: input.presence,
+    },
+  });
+
+  log({
+    requestId,
+    orderId: order.id,
+    publicOrderNumber: order.public_order_number,
+    event: "customer_presence_updated",
+    presence: input.presence,
+  });
+
+  return {
+    ok: true as const,
+    idempotent: false,
+    presence: input.presence,
+  };
+}
+
+/** @deprecated Prefer setCustomerPresence({ presence: "on_the_way" }) */
+export async function markOnTheWay(input: {
+  publicOrderNumber: number;
+  accessToken: string;
+}) {
+  return setCustomerPresence({ ...input, presence: "on_the_way" });
+}
+
+/** @deprecated Prefer setCustomerPresence({ presence: "outside" }) */
+export async function markArrived(input: {
+  publicOrderNumber: number;
+  accessToken: string;
+  confirmVehicle?: boolean;
+  vehicleUpdate?: {
+    makeModel: string;
+    color: string;
+    plateHint?: string | null;
+  };
+}) {
   if (input.vehicleUpdate) {
+    const { order } = await getOrderForCustomer(input);
+    const supabase = createServiceClient();
     await supabase
       .from("orders")
       .update({
@@ -113,47 +188,13 @@ export async function markArrived(input: {
       .eq("id", order.id);
   }
 
-  const check = canTransition("READY", "CUSTOMER_ARRIVED", "CUSTOMER");
-  if (!check.ok) throw new DomainError("INVALID_TRANSITION", "ما نقدر نسجل وصولك الحين");
-
-  const { data, error } = await supabase.rpc("transition_order", {
-    p_order_id: order.id,
-    p_from_status: "READY",
-    p_to_status: "CUSTOMER_ARRIVED",
-    p_event_type: eventTypeForTransition("CUSTOMER_ARRIVED"),
-    p_actor_type: "CUSTOMER",
-    p_actor_id: null,
-    p_metadata: { flasher: true, confirmVehicle: input.confirmVehicle ?? true },
+  const result = await setCustomerPresence({
+    publicOrderNumber: input.publicOrderNumber,
+    accessToken: input.accessToken,
+    presence: "outside",
   });
 
-  if (error) {
-    if (error.message?.includes("ORDER_TRANSITION_CONFLICT")) {
-      const { data: refreshed } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("id", order.id)
-        .single();
-      if (refreshed?.status === "CUSTOMER_ARRIVED") {
-        return { ok: true as const, idempotent: true, order: refreshed };
-      }
-      throw new DomainError("CONFLICT", "حاول مرة ثانية");
-    }
-    throw new DomainError("TRANSITION_FAILED", "صار خطأ، حاول مرة ثانية");
-  }
-
-  await supabase
-    .from("orders")
-    .update({ flasher_confirmed: true })
-    .eq("id", order.id);
-
-  log({
-    requestId,
-    orderId: order.id,
-    publicOrderNumber: order.public_order_number,
-    event: "customer_arrived",
-  });
-
-  return { ok: true as const, idempotent: false, order: data };
+  return { ...result, order: null };
 }
 
 export async function submitLocationHint(input: {
@@ -162,10 +203,13 @@ export async function submitLocationHint(input: {
   locationHint: string;
 }) {
   const { order } = await getOrderForCustomer(input);
-  if (order.status !== "CUSTOMER_ARRIVED" && !order.location_help_requested) {
-    // Only after staff requested help, or already arrived
-  }
-  if (!order.location_help_requested && order.status !== "CUSTOMER_ARRIVED") {
+  const presence = normalizePresence(order.customer_presence);
+  const arrivedLike =
+    presence === "outside" ||
+    order.status === "CUSTOMER_ARRIVED" ||
+    order.location_help_requested;
+
+  if (!arrivedLike) {
     throw new DomainError("NOT_ALLOWED", "هالخيار مو متاح الحين");
   }
 

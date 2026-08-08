@@ -1,3 +1,4 @@
+import type { CustomerPresence } from "@/domains/orders/customer-presence";
 import {
   canTransition,
   eventTypeForTransition,
@@ -8,6 +9,17 @@ import { rateLimit } from "@/lib/rate-limit";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { DomainError } from "./checkout";
 import type { OrderStatus, StaffRole } from "@/types/database";
+
+function normalizePresence(value: unknown): CustomerPresence {
+  if (
+    value === "on_the_way" ||
+    value === "outside" ||
+    value === "claimed_received"
+  ) {
+    return value;
+  }
+  return "none";
+}
 
 export async function requireStaff(minRole: StaffRole = "STAFF") {
   const supabase = await createClient();
@@ -52,11 +64,24 @@ export async function listStaffQueue() {
     .order("customer_arrived_at", { ascending: true, nullsFirst: false })
     .order("paid_at", { ascending: true });
 
-  return (orders ?? []).map((o) => ({
-    ...o,
-    itemCount: o.order_items?.length ?? 0,
-    primaryAction: staffPrimaryAction(o.status),
-  }));
+  return (orders ?? []).map((o) => {
+    const presence = normalizePresence(o.customer_presence);
+    const inferredPresence =
+      presence !== "none"
+        ? presence
+        : o.status === "CUSTOMER_ARRIVED" || o.status === "OUT_FOR_DELIVERY"
+          ? ("outside" as const)
+          : o.customer_on_the_way
+            ? ("on_the_way" as const)
+            : ("none" as const);
+
+    return {
+      ...o,
+      customer_presence: inferredPresence,
+      itemCount: o.order_items?.length ?? 0,
+      primaryAction: staffPrimaryAction(o.status as OrderStatus),
+    };
+  });
 }
 
 export async function getStaffOrder(orderId: string) {
@@ -81,7 +106,25 @@ export async function getStaffOrder(orderId: string) {
       .order("created_at", { ascending: true }),
   ]);
 
-  return { order, items: items ?? [], events: events ?? [] };
+  return {
+    order: {
+      ...order,
+      customer_presence: (() => {
+        const presence = normalizePresence(order.customer_presence);
+        if (presence !== "none") return presence;
+        if (
+          order.status === "CUSTOMER_ARRIVED" ||
+          order.status === "OUT_FOR_DELIVERY"
+        ) {
+          return "outside" as const;
+        }
+        if (order.customer_on_the_way) return "on_the_way" as const;
+        return "none" as const;
+      })(),
+    },
+    items: items ?? [],
+    events: events ?? [],
+  };
 }
 
 export async function staffTransition(input: {
@@ -101,26 +144,29 @@ export async function staffTransition(input: {
     .single();
   if (!order) throw new DomainError("ORDER_NOT_FOUND", "الطلب غير موجود");
 
-  // Convenience: PAID → ACCEPTED → PREPARING in one "ابدأ" can go to PREPARING
-  let from = order.status as OrderStatus;
+  const from = order.status as OrderStatus;
   let to = input.toStatus;
 
-  if (from === "PAID" && to === "ACCEPTED") {
-    // accept then auto-preparing for speed
-    const accept = canTransition(from, "ACCEPTED", "STAFF");
-    if (!accept.ok) throw new DomainError("INVALID_TRANSITION", "انتقال غير مسموح");
-    const { error: e1 } = await supabase.rpc("transition_order", {
-      p_order_id: order.id,
-      p_from_status: "PAID",
-      p_to_status: "ACCEPTED",
-      p_event_type: "ACCEPTED",
-      p_actor_type: "STAFF",
-      p_actor_id: user.id,
-      p_metadata: {},
-    });
-    if (e1) throw new DomainError("CONFLICT", "أحد غير الحالة قبلك");
-    from = "ACCEPTED";
+  // Normalize accept action: PAID/ACCEPTED → PREPARING
+  if (
+    (from === "PAID" || from === "ACCEPTED") &&
+    (to === "ACCEPTED" || to === "PREPARING")
+  ) {
     to = "PREPARING";
+  }
+
+  // Normalize complete action from ready/legacy arrival states
+  if (
+    (from === "READY" ||
+      from === "CUSTOMER_ARRIVED" ||
+      from === "OUT_FOR_DELIVERY") &&
+    (to === "OUT_FOR_DELIVERY" || to === "DELIVERED")
+  ) {
+    to = "DELIVERED";
+  }
+
+  if (from === "DELIVERED" || from === "CANCELLED" || from === "REFUNDED") {
+    throw new DomainError("ORDER_COMPLETED", "الطلب مكتمل، ما ينفع تعديله");
   }
 
   const check = canTransition(from, to, "STAFF");
@@ -164,7 +210,13 @@ export async function staffCannotLocate(orderId: string) {
     .eq("id", orderId)
     .single();
   if (!order) throw new DomainError("ORDER_NOT_FOUND", "الطلب غير موجود");
-  if (order.status !== "CUSTOMER_ARRIVED") {
+  const presence = order.customer_presence as string | undefined;
+  const canHelp =
+    order.status === "READY" ||
+    order.status === "CUSTOMER_ARRIVED" ||
+    presence === "outside" ||
+    presence === "on_the_way";
+  if (!canHelp) {
     throw new DomainError("INVALID_STATE", "الطلب مو في حالة وصول");
   }
 

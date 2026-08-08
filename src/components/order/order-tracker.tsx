@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import {
+  CUSTOMER_PRESENCE_LABELS,
+  type CustomerPresence,
+} from "@/domains/orders/customer-presence";
 import { customerStatusCopy } from "@/domains/orders/state-machine";
 import {
   LOCATION_HINTS,
@@ -10,12 +14,11 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { formatSar } from "@/lib/money";
 import {
-  arrivedAction,
+  customerPresenceAction,
   locationHintAction,
-  onMyWayAction,
 } from "@/server/actions/orders";
 import { Button } from "@/components/ui/button";
-import type { OrderRecord, OrderStatus } from "@/types/database";
+import type { OrderRecord } from "@/types/database";
 
 type OrderData = {
   order: OrderRecord;
@@ -33,23 +36,37 @@ type OrderTrackerProps = {
   accessToken: string;
 };
 
+function normalizePresence(order: OrderRecord): CustomerPresence {
+  const value = order.customer_presence;
+  if (
+    value === "on_the_way" ||
+    value === "outside" ||
+    value === "claimed_received"
+  ) {
+    return value;
+  }
+  if (order.status === "CUSTOMER_ARRIVED" || order.status === "OUT_FOR_DELIVERY") {
+    return "outside";
+  }
+  if (order.customer_on_the_way) return "on_the_way";
+  return "none";
+}
+
 export function OrderTracker({
   initial,
   publicOrderNumber,
   accessToken,
 }: OrderTrackerProps) {
   const router = useRouter();
-  // Prefer server-refreshed props as source of truth after realtime refetch
   const data = initial;
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [vehicleDialogOpen, setVehicleDialogOpen] = useState(false);
-  const [confirmVehicle, setConfirmVehicle] = useState(true);
-  const [locationHint, setLocationHint] = useState("");
   const [customHint, setCustomHint] = useState("");
+  const [locationHint, setLocationHint] = useState("");
 
   const { order } = data;
   const copy = customerStatusCopy(order.status);
+  const presence = normalizePresence(order);
 
   const refresh = useCallback(() => {
     router.refresh();
@@ -92,38 +109,20 @@ export function OrderTracker({
         )
       : null;
 
-  const showOnMyWay = canShowOnMyWay(order.status);
-  const showArrived = order.status === "READY";
-  const showFlasher =
-    order.status === "READY" ||
-    order.status === "CUSTOMER_ARRIVED" ||
-    order.status === "OUT_FOR_DELIVERY";
-  const showLocationHelp = order.location_help_requested;
+  const showPresenceActions = order.status === "READY";
+  const showLocationHelp =
+    order.location_help_requested &&
+    (presence === "outside" || order.status === "CUSTOMER_ARRIVED");
 
-  const handleOnMyWay = () => {
+  const setPresence = (
+    next: "on_the_way" | "outside" | "claimed_received",
+  ) => {
     setError(null);
     startTransition(async () => {
-      const result = await onMyWayAction({ publicOrderNumber, accessToken });
-      if (!result.ok) {
-        setError(result.message);
-        return;
-      }
-      refresh();
-    });
-  };
-
-  const handleArrivedClick = () => {
-    setVehicleDialogOpen(true);
-  };
-
-  const handleArrivedConfirm = () => {
-    setError(null);
-    setVehicleDialogOpen(false);
-    startTransition(async () => {
-      const result = await arrivedAction({
+      const result = await customerPresenceAction({
         publicOrderNumber,
         accessToken,
-        confirmVehicle,
+        presence: next,
       });
       if (!result.ok) {
         setError(result.message);
@@ -176,6 +175,11 @@ export function OrderTracker({
             الوقت المتوقع: {estimateText}
           </p>
         )}
+        {presence !== "none" && order.status === "READY" && (
+          <p className="mt-4 text-sm font-medium text-[var(--success)]">
+            حدّثت حالتك: {CUSTOMER_PRESENCE_LABELS[presence]}
+          </p>
+        )}
       </section>
 
       {vehicleLabel && (
@@ -190,54 +194,53 @@ export function OrderTracker({
         </section>
       )}
 
-      {showFlasher && (
-        <section className="mt-6 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-4 animate-fade-up">
-          <p className="font-semibold text-[var(--accent)]">
-            شغّل الفلشر 🚗
+      {showPresenceActions && (
+        <div className="mt-8 space-y-3 animate-fade-up stagger-3">
+          <p className="text-center text-sm text-[var(--ink-muted)]">
+            وين وصلت؟
           </p>
-          <p className="mt-1 text-sm text-[var(--ink-muted)]">
-            عشان نعرف مكانك بسرعة
-          </p>
-        </section>
-      )}
-
-      {order.customer_on_the_way && !showArrived && (
-        <p className="mt-4 text-center text-sm text-[var(--success)]">
-          سجلنا إنك بالطريق ✓
-        </p>
-      )}
-
-      <div className="mt-8 space-y-3 animate-fade-up stagger-3">
-        {showOnMyWay && !order.customer_on_the_way && (
           <Button
             type="button"
             size="lg"
-            variant="secondary"
+            variant={presence === "on_the_way" ? "primary" : "secondary"}
             className="w-full"
             disabled={pending}
-            onClick={handleOnMyWay}
+            onClick={() => setPresence("on_the_way")}
           >
-            أنا بالطريق
+            بالطريق
           </Button>
-        )}
-
-        {showArrived && (
           <Button
             type="button"
             size="lg"
+            variant={presence === "outside" ? "primary" : "secondary"}
             className="w-full"
             disabled={pending}
-            onClick={handleArrivedClick}
+            onClick={() => setPresence("outside")}
           >
-            وصلت
+            أنا برا
           </Button>
-        )}
-      </div>
+          <Button
+            type="button"
+            size="lg"
+            variant={presence === "claimed_received" ? "primary" : "secondary"}
+            className="w-full"
+            disabled={pending}
+            onClick={() => setPresence("claimed_received")}
+          >
+            تم الاستلام
+          </Button>
+          {presence === "outside" && (
+            <p className="text-center text-sm text-[var(--accent)]">
+              شغّل الفلشر عشان الموظف يلقاك أسرع
+            </p>
+          )}
+        </div>
+      )}
 
       {showLocationHelp && (
         <section className="mt-8 space-y-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-2)]/50 p-5 animate-fade-up">
           <div>
-            <h2 className="font-semibold">وين مكانك؟</h2>
+            <h2 className="font-semibold">ساعدنا نلقاك</h2>
             <p className="mt-1 text-sm text-[var(--ink-muted)]">
               الموظف يحتاج يساعدك يلقاك
             </p>
@@ -285,33 +288,6 @@ export function OrderTracker({
         </section>
       )}
 
-      <section className="mt-10 animate-fade-up">
-        <h2 className="mb-3 text-sm font-semibold text-[var(--ink-muted)]">
-          تفاصيل الطلب
-        </h2>
-        <ul className="space-y-2">
-          {data.items.map((item) => (
-            <li
-              key={item.id}
-              className="flex items-center justify-between text-sm"
-            >
-              <span>
-                {item.product_name_snapshot} × {item.quantity}
-              </span>
-              <span className="text-[var(--ink-muted)]">
-                {formatSar(item.line_total_minor)}
-              </span>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-4 flex items-center justify-between border-t border-[var(--line)] pt-4 font-semibold">
-          <span>الإجمالي</span>
-          <span className="text-[var(--accent)]">
-            {formatSar(order.total_minor)}
-          </span>
-        </div>
-      </section>
-
       {error && (
         <p
           className="mt-6 rounded-xl bg-[var(--danger)]/10 px-4 py-3 text-sm text-[var(--danger)]"
@@ -321,55 +297,29 @@ export function OrderTracker({
         </p>
       )}
 
-      {vehicleDialogOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--ink)]/40 p-4 sm:items-center"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="w-full max-w-md rounded-3xl bg-[var(--surface)] p-6">
-            <h2 className="text-lg font-semibold">تأكيد سيارتك</h2>
-            {vehicleLabel ? (
-              <p className="mt-3 text-[var(--ink-muted)]">{vehicleLabel}</p>
-            ) : (
-              <p className="mt-3 text-[var(--ink-muted)]">
-                تأكد إنك بالسيارة الصح
-              </p>
-            )}
-            <label className="mt-4 flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={confirmVehicle}
-                onChange={(e) => setConfirmVehicle(e.target.checked)}
-                className="size-4 accent-[var(--accent)]"
-              />
-              <span>هذي سيارتي</span>
-            </label>
-            <div className="mt-6 flex gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                className="flex-1"
-                onClick={() => setVehicleDialogOpen(false)}
-              >
-                إلغاء
-              </Button>
-              <Button
-                type="button"
-                className="flex-1"
-                disabled={pending}
-                onClick={handleArrivedConfirm}
-              >
-                وصلت
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <section className="mt-10 animate-fade-up">
+        <h2 className="mb-3 text-sm font-semibold text-[var(--ink-muted)]">
+          الطلب
+        </h2>
+        <ul className="space-y-2">
+          {data.items.map((item) => (
+            <li
+              key={item.id}
+              className="flex items-center justify-between rounded-xl border border-[var(--line)] bg-white/40 px-4 py-3 text-sm"
+            >
+              <span>
+                {item.quantity}× {item.product_name_snapshot}
+              </span>
+              <span className="text-[var(--ink-muted)]">
+                {formatSar(item.line_total_minor)}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-left text-sm font-semibold" dir="ltr">
+          {formatSar(order.total_minor)}
+        </p>
+      </section>
     </div>
   );
-}
-
-function canShowOnMyWay(status: OrderStatus): boolean {
-  return ["PAID", "ACCEPTED", "PREPARING", "READY"].includes(status);
 }

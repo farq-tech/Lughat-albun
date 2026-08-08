@@ -75,34 +75,32 @@ test.describe("لغة البن curbside happy path", () => {
     }
 
     await staff.getByText(`#${publicNumber}`).first().click({ timeout: 15_000 }).catch(async () => {
-      await staff.getByRole("button", { name: /ابدأ/ }).first().click();
+      await staff.getByRole("button", { name: /قبول الطلب/ }).first().click();
     });
 
-    const startBtn = staff.getByRole("button", { name: /^ابدأ$/ }).first();
-    if (await startBtn.isVisible().catch(() => false)) await startBtn.click();
-    const readyBtn = staff.getByRole("button", { name: /جاهز/ }).first();
+    const acceptBtn = staff.getByRole("button", { name: /قبول الطلب/ }).first();
+    if (await acceptBtn.isVisible().catch(() => false)) await acceptBtn.click();
+    const readyBtn = staff.getByRole("button", { name: /الطلب جاهز/ }).first();
     if (await readyBtn.isVisible().catch(() => false)) await readyBtn.click();
 
     await page.bringToFront();
     await page.reload();
-    await expect(page.getByText(/قهوتك جاهزة|جاهزة/)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/^جاهز$/)).toBeVisible({ timeout: 20_000 });
 
-    const arrived = page.getByRole("button", { name: /وصلت/ });
-    await arrived.click();
-    const confirm = page.getByRole("button", { name: /هذه سيارتي|نعم/ });
-    if (await confirm.isVisible().catch(() => false)) await confirm.click();
-    await expect(page.getByText(/فلشر|عرفناك/)).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: /بالطريق/ }).click();
+    await page.getByRole("button", { name: /أنا برا/ }).click();
+    await expect(page.getByText(/الفلشر|أنا برا/)).toBeVisible({ timeout: 15_000 });
 
     await staff.bringToFront();
     await staff.reload();
-    await expect(staff.getByText(/العميل وصل/)).toBeVisible({ timeout: 15_000 });
-    const out = staff.getByRole("button", { name: /خرجت له/ }).first();
-    if (await out.isVisible().catch(() => false)) await out.click();
-    const done = staff.getByRole("button", { name: /تم التسليم/ }).first();
+    await expect(staff.getByText(/أنا برا|بالطريق/)).toBeVisible({ timeout: 15_000 });
+    const done = staff.getByRole("button", { name: /تم تسليم الطلب/ }).first();
     if (await done.isVisible().catch(() => false)) await done.click();
 
     await page.bringToFront();
     await page.reload();
-    await expect(page.getByText(/بالعافية/)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/بالعافية|تم تسليم الطلب/)).toBeVisible({
+      timeout: 20_000,
+    });
   });
 });

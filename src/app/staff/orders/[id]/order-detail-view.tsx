@@ -6,6 +6,11 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { formatSar } from "@/lib/money";
 import {
+  CUSTOMER_PRESENCE_LABELS,
+  type CustomerPresence,
+} from "@/domains/orders/customer-presence";
+import { staffPrimaryAction, staffStatusLabel } from "@/domains/orders/state-machine";
+import {
   staffCannotLocateAction,
   staffTransitionAction,
 } from "@/server/actions/staff";
@@ -24,6 +29,8 @@ type OrderDetail = {
     location_hint: string | null;
     flasher_confirmed: boolean;
     customer_on_the_way: boolean;
+    customer_presence?: CustomerPresence | null;
+    customer_presence_updated_at?: string | null;
     location_help_requested: boolean;
     subtotal_minor: number;
     tax_amount_minor: number;
@@ -55,44 +62,36 @@ type OrderDetail = {
   }[];
 };
 
-const STATUS_LABELS: Partial<Record<OrderStatus, string>> = {
-  PAID: "مدفوع",
-  ACCEPTED: "مقبول",
-  PREPARING: "تحت التحضير",
-  READY: "جاهز",
-  CUSTOMER_ARRIVED: "العميل وصل",
-  OUT_FOR_DELIVERY: "طالع للعميل",
-  DELIVERED: "تم التسليم",
-};
-
 const EVENT_LABELS: Record<string, string> = {
   PAYMENT_CONFIRMED: "تأكيد الدفع",
   ACCEPTED: "قبول الطلب",
-  PREPARING: "بدء التحضير",
+  PREPARING: "جاري التجهيز",
   READY: "الطلب جاهز",
   CUSTOMER_ARRIVED: "وصول العميل",
   OUT_FOR_DELIVERY: "خرج للعميل",
-  DELIVERED: "تم التسليم",
+  DELIVERED: "تم تسليم الطلب",
+  CUSTOMER_ON_THE_WAY: "العميل بالطريق",
+  CUSTOMER_OUTSIDE: "العميل برا",
+  CUSTOMER_CLAIMED_RECEIVED: "العميل: تم الاستلام",
   LOCATION_HELP_REQUESTED: "طلب مساعدة في الموقع",
   CANCELLED: "إلغاء",
   REFUNDED: "استرجاع",
 };
 
-function primaryAction(status: OrderStatus) {
-  switch (status) {
-    case "PAID":
-      return { label: "ابدأ", next: "ACCEPTED" as const };
-    case "ACCEPTED":
-      return { label: "تحت التحضير", next: "PREPARING" as const };
-    case "PREPARING":
-      return { label: "جاهز", next: "READY" as const };
-    case "CUSTOMER_ARRIVED":
-      return { label: "خرجت له", next: "OUT_FOR_DELIVERY" as const };
-    case "OUT_FOR_DELIVERY":
-      return { label: "تم التسليم", next: "DELIVERED" as const };
-    default:
-      return null;
+function normalizePresence(order: OrderDetail["order"]): CustomerPresence {
+  const value = order.customer_presence;
+  if (
+    value === "on_the_way" ||
+    value === "outside" ||
+    value === "claimed_received"
+  ) {
+    return value;
   }
+  if (order.status === "CUSTOMER_ARRIVED" || order.status === "OUT_FOR_DELIVERY") {
+    return "outside";
+  }
+  if (order.customer_on_the_way) return "on_the_way";
+  return "none";
 }
 
 export function OrderDetailView({ data }: { data: OrderDetail }) {
@@ -100,7 +99,13 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const { order, items, events } = data;
-  const action = primaryAction(order.status);
+  const action = staffPrimaryAction(order.status);
+  const presence = normalizePresence(order);
+  const canRequestLocateHelp =
+    order.status === "READY" ||
+    order.status === "CUSTOMER_ARRIVED" ||
+    presence === "outside" ||
+    presence === "on_the_way";
 
   async function transition() {
     if (!action) return;
@@ -144,7 +149,7 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
           <div>
             <h1 className="text-3xl font-bold">#{order.public_order_number}</h1>
             <p className="mt-1 text-[var(--ink-muted)]">
-              {STATUS_LABELS[order.status] ?? order.status}
+              {staffStatusLabel(order.status)}
             </p>
           </div>
           <div className="text-left">
@@ -155,10 +160,18 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
           </div>
         </div>
 
-        {order.status === "CUSTOMER_ARRIVED" ? (
-          <div className="mt-4 rounded-xl bg-[var(--danger)]/10 px-4 py-3 font-bold text-[var(--danger)]">
-            العميل وصل
-            {order.flasher_confirmed ? " — الفلشر شغّال" : ""}
+        {presence !== "none" ? (
+          <div
+            className={`mt-4 rounded-xl px-4 py-3 font-bold ${
+              presence === "outside" || presence === "claimed_received"
+                ? "bg-[var(--danger)]/10 text-[var(--danger)]"
+                : "bg-[var(--accent)]/10 text-[var(--accent)]"
+            }`}
+          >
+            تحديث العميل: {CUSTOMER_PRESENCE_LABELS[presence]}
+            {presence === "outside" && order.flasher_confirmed
+              ? " — الفلشر شغّال"
+              : ""}
           </div>
         ) : null}
 
@@ -242,7 +255,7 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
           {events.map((ev) => (
             <li
               key={ev.id}
-              className="flex justify-between gap-4 text-sm border-r-2 border-[var(--accent)] pr-3"
+              className="flex justify-between gap-4 border-r-2 border-[var(--accent)] pr-3 text-sm"
             >
               <span>{EVENT_LABELS[ev.event_type] ?? ev.event_type}</span>
               <time className="shrink-0 text-[var(--ink-muted)]" dir="ltr">
@@ -269,7 +282,9 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
           </Button>
         ) : null}
 
-        {order.status === "CUSTOMER_ARRIVED" ? (
+        {canRequestLocateHelp &&
+        order.status !== "DELIVERED" &&
+        order.status !== "CANCELLED" ? (
           <Button
             variant="secondary"
             disabled={busy || order.location_help_requested}

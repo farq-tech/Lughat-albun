@@ -10,22 +10,42 @@ import {
   getStaffQueueAction,
   staffTransitionAction,
 } from "@/server/actions/staff";
+import {
+  CUSTOMER_PRESENCE_LABELS,
+  type CustomerPresence,
+} from "@/domains/orders/customer-presence";
 import type { OrderStatus } from "@/types/database";
 import type { StaffQueueOrder } from "@/types/staff-queue";
 
-type SectionKey = "new" | "preparing" | "ready" | "arrived" | "out";
+type SectionKey = "new" | "preparing" | "ready" | "legacy";
 
 const SECTIONS: { key: SectionKey; title: string; statuses: OrderStatus[] }[] = [
-  { key: "new", title: "جديد", statuses: ["PAID", "ACCEPTED"] },
-  { key: "preparing", title: "تحت التحضير", statuses: ["PREPARING"] },
+  { key: "new", title: "جديد", statuses: ["PAID"] },
+  { key: "preparing", title: "جاري التجهيز", statuses: ["ACCEPTED", "PREPARING"] },
   { key: "ready", title: "جاهز", statuses: ["READY"] },
-  { key: "arrived", title: "وصل", statuses: ["CUSTOMER_ARRIVED"] },
+  // Legacy-only bucket for historical rows still mid-handoff
   {
-    key: "out",
-    title: "طالع للعميل",
-    statuses: ["OUT_FOR_DELIVERY"],
+    key: "legacy",
+    title: "تسليم (قديم)",
+    statuses: ["CUSTOMER_ARRIVED", "OUT_FOR_DELIVERY"],
   },
 ];
+
+function presenceOf(order: StaffQueueOrder): CustomerPresence {
+  const value = order.customer_presence;
+  if (
+    value === "on_the_way" ||
+    value === "outside" ||
+    value === "claimed_received"
+  ) {
+    return value;
+  }
+  if (order.status === "CUSTOMER_ARRIVED" || order.status === "OUT_FOR_DELIVERY") {
+    return "outside";
+  }
+  if (order.customer_on_the_way) return "on_the_way";
+  return "none";
+}
 
 function elapsedMinutes(from: string | null): number {
   if (!from) return 0;
@@ -79,7 +99,12 @@ export function StaffQueueView({ initialOrders }: StaffQueueViewProps) {
   const arrivedIdsRef = useRef(
     new Set(
       initialOrders
-        .filter((o) => o.status === "CUSTOMER_ARRIVED")
+        .filter(
+          (o) =>
+            o.status === "CUSTOMER_ARRIVED" ||
+            o.customer_presence === "outside" ||
+            o.customer_presence === "claimed_received",
+        )
         .map((o) => o.id),
     ),
   );
@@ -98,10 +123,11 @@ export function StaffQueueView({ initialOrders }: StaffQueueViewProps) {
         if (!knownIdsRef.current.has(o.id) && o.status === "PAID") {
           playAlert();
         }
-        if (
-          o.status === "CUSTOMER_ARRIVED" &&
-          !arrivedIdsRef.current.has(o.id)
-        ) {
+        const outsideNow =
+          o.customer_presence === "outside" ||
+          o.customer_presence === "claimed_received" ||
+          o.status === "CUSTOMER_ARRIVED";
+        if (outsideNow && !arrivedIdsRef.current.has(o.id)) {
           playAlert();
         }
       }
@@ -109,7 +135,11 @@ export function StaffQueueView({ initialOrders }: StaffQueueViewProps) {
 
     for (const o of result.data) {
       knownIdsRef.current.add(o.id);
-      if (o.status === "CUSTOMER_ARRIVED") {
+      if (
+        o.customer_presence === "outside" ||
+        o.customer_presence === "claimed_received" ||
+        o.status === "CUSTOMER_ARRIVED"
+      ) {
         arrivedIdsRef.current.add(o.id);
       }
     }
@@ -151,11 +181,32 @@ export function StaffQueueView({ initialOrders }: StaffQueueViewProps) {
       const section = SECTIONS.find((s) => s.statuses.includes(o.status));
       if (section) map.get(section.key)!.push(o);
     }
-    map.get("arrived")!.sort((a, b) => {
-      const ta = a.customer_arrived_at ?? a.paid_at ?? a.created_at;
-      const tb = b.customer_arrived_at ?? b.paid_at ?? b.created_at;
-      return new Date(ta).getTime() - new Date(tb).getTime();
-    });
+    const ready = map.get("ready");
+    if (ready) {
+      ready.sort((a, b) => {
+        const pa = presenceOf(a);
+        const pb = presenceOf(b);
+        const rank = (p: CustomerPresence) =>
+          p === "claimed_received" || p === "outside"
+            ? 0
+            : p === "on_the_way"
+              ? 1
+              : 2;
+        const diff = rank(pa) - rank(pb);
+        if (diff !== 0) return diff;
+        const ta =
+          a.customer_presence_updated_at ??
+          a.customer_arrived_at ??
+          a.paid_at ??
+          a.created_at;
+        const tb =
+          b.customer_presence_updated_at ??
+          b.customer_arrived_at ??
+          b.paid_at ??
+          b.created_at;
+        return new Date(ta).getTime() - new Date(tb).getTime();
+      });
+    }
     return map;
   }, [orders]);
 
@@ -202,25 +253,21 @@ export function StaffQueueView({ initialOrders }: StaffQueueViewProps) {
         </div>
       </header>
 
-      <div className="grid gap-4 lg:grid-cols-5">
+      <div className="grid gap-4 lg:grid-cols-4">
         {SECTIONS.map((section) => {
           const items = grouped.get(section.key) ?? [];
-          const isArrived = section.key === "arrived";
+          const highlightReady = section.key === "ready";
 
           return (
             <section
               key={section.key}
               className={`rounded-2xl border p-3 ${
-                isArrived
-                  ? "border-[var(--danger)]/40 bg-[var(--danger)]/5 ring-2 ring-[var(--danger)]/20"
+                highlightReady
+                  ? "border-[var(--accent)]/40 bg-[var(--accent)]/5"
                   : "border-[var(--line)] bg-[var(--surface)]"
               }`}
             >
-              <h2
-                className={`mb-3 flex items-center justify-between text-lg font-bold ${
-                  isArrived ? "text-[var(--danger)]" : ""
-                }`}
-              >
+              <h2 className="mb-3 flex items-center justify-between text-lg font-bold">
                 {section.title}
                 <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-sm font-normal">
                   {items.length}
@@ -233,15 +280,22 @@ export function StaffQueueView({ initialOrders }: StaffQueueViewProps) {
                     لا طلبات
                   </li>
                 ) : (
-                  items.map((order) => (
-                    <OrderCard
-                      key={order.id}
-                      order={order}
-                      busy={busyId === order.id}
-                      onAction={() => void handleAction(order)}
-                      priority={isArrived}
-                    />
-                  ))
+                  items.map((order) => {
+                    const presence = presenceOf(order);
+                    const priority =
+                      presence === "outside" ||
+                      presence === "claimed_received";
+                    return (
+                      <OrderCard
+                        key={order.id}
+                        order={order}
+                        presence={presence}
+                        busy={busyId === order.id}
+                        onAction={() => void handleAction(order)}
+                        priority={priority}
+                      />
+                    );
+                  })
                 )}
               </ul>
             </section>
@@ -254,21 +308,27 @@ export function StaffQueueView({ initialOrders }: StaffQueueViewProps) {
 
 function OrderCard({
   order,
+  presence,
   busy,
   onAction,
   priority,
 }: {
   order: StaffQueueOrder;
+  presence: CustomerPresence;
   busy: boolean;
   onAction: () => void;
   priority: boolean;
 }) {
   const waitFrom = order.paid_at ?? order.created_at;
   const waitMin = elapsedMinutes(waitFrom);
-  const arrivedMin =
-    order.status === "CUSTOMER_ARRIVED"
-      ? elapsedMinutes(order.customer_arrived_at)
-      : 0;
+  const presenceSince =
+    presence === "outside" || presence === "claimed_received"
+      ? elapsedMinutes(
+          order.customer_presence_updated_at ?? order.customer_arrived_at,
+        )
+      : presence === "on_the_way"
+        ? elapsedMinutes(order.customer_presence_updated_at ?? order.on_my_way_at)
+        : 0;
 
   return (
     <li
@@ -286,16 +346,17 @@ function OrderCard({
           </span>
         </div>
 
-        {priority ? (
-          <div className="mb-2 rounded-lg bg-[var(--danger)]/10 px-2 py-1 text-sm font-bold text-[var(--danger)]">
-            العميل وصل — منذ {formatWait(arrivedMin)}
+        {presence !== "none" ? (
+          <div
+            className={`mb-2 rounded-lg px-2 py-1 text-sm font-bold ${
+              priority
+                ? "bg-[var(--danger)]/10 text-[var(--danger)]"
+                : "bg-[var(--accent)]/10 text-[var(--accent)]"
+            }`}
+          >
+            العميل: {CUSTOMER_PRESENCE_LABELS[presence]}
+            {presenceSince > 0 ? ` — منذ ${formatWait(presenceSince)}` : ""}
           </div>
-        ) : null}
-
-        {order.flasher_confirmed ? (
-          <p className="mb-1 text-xs font-medium text-[var(--accent)]">
-            ⚡ الفلشر شغّال
-          </p>
         ) : null}
 
         <p className="text-sm text-[var(--ink)]">
