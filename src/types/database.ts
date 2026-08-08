@@ -140,7 +140,10 @@ export interface CartTotals {
   totalMinor: number;
   currency: string;
   priceChanged: boolean;
+  /** Products the admin marked unavailable (sold out). */
   unavailableItems: string[];
+  /** Cart/config problems — not inventory. */
+  invalidItems: string[];
 }
 
 export interface VehicleInput {

@@ -23,6 +23,56 @@ export interface PriceCartResult {
   totals: CartTotals;
 }
 
+function optionsForGroup(
+  catalog: PricingCatalog,
+  groupId: string,
+): ModifierOption[] {
+  return [...catalog.options.values()]
+    .filter(
+      (o) => o.group_id === groupId && o.is_active && o.is_available,
+    )
+    .sort((a, b) => a.sort_order - b.sort_order);
+}
+
+/** Keep valid selections and fill missing required modifiers with defaults. */
+export function withDefaultModifiers(
+  productId: string,
+  selected: CartLineInput["modifiers"],
+  catalog: PricingCatalog,
+): CartLineInput["modifiers"] {
+  const groupIds = catalog.productGroupIds.get(productId) ?? [];
+  const allowed = new Set(groupIds);
+
+  const cleaned = selected.filter((sel) => {
+    if (!allowed.has(sel.groupId)) return false;
+    const option = catalog.options.get(sel.optionId);
+    return (
+      !!option &&
+      option.group_id === sel.groupId &&
+      option.is_active &&
+      option.is_available
+    );
+  });
+
+  const presentGroups = new Set(cleaned.map((s) => s.groupId));
+  const result = [...cleaned];
+
+  for (const groupId of groupIds) {
+    const group = catalog.groups.get(groupId);
+    if (!group?.is_active) continue;
+    if (presentGroups.has(groupId)) continue;
+    if (group.required && Math.max(group.min_selection, 1) >= 1) {
+      const first = optionsForGroup(catalog, groupId)[0];
+      if (first) {
+        result.push({ groupId, optionId: first.id });
+        presentGroups.add(groupId);
+      }
+    }
+  }
+
+  return result;
+}
+
 function validateModifiers(
   productId: string,
   selected: CartLineInput["modifiers"],
@@ -82,6 +132,7 @@ export function priceCart(
 ): PriceCartResult {
   const lines: PricedCartLine[] = [];
   const unavailableItems: string[] = [];
+  const invalidItems: string[] = [];
 
   for (const item of items) {
     if (!Number.isInteger(item.quantity) || item.quantity < 1) {
@@ -89,9 +140,11 @@ export function priceCart(
     }
     const product = catalog.products.get(item.productId);
     if (!product || !product.is_active) {
-      unavailableItems.push(item.productId);
+      invalidItems.push(product?.name_ar ?? "منتج");
       continue;
     }
+
+    // Only admin toggle can mark a product sold out.
     if (!product.is_available) {
       unavailableItems.push(product.name_ar);
       lines.push({
@@ -106,9 +159,13 @@ export function priceCart(
       continue;
     }
 
-    const modResult = validateModifiers(product.id, item.modifiers, catalog);
+    let modResult = validateModifiers(product.id, item.modifiers, catalog);
     if (!modResult.ok) {
-      unavailableItems.push(product.name_ar);
+      const repaired = withDefaultModifiers(product.id, item.modifiers, catalog);
+      modResult = validateModifiers(product.id, repaired, catalog);
+    }
+    if (!modResult.ok) {
+      invalidItems.push(product.name_ar);
       lines.push({
         productId: product.id,
         productName: product.name_ar,
@@ -160,6 +217,7 @@ export function priceCart(
       currency: catalog.currency ?? "SAR",
       priceChanged,
       unavailableItems,
+      invalidItems,
     },
   };
 }
@@ -168,6 +226,7 @@ export function canCheckout(result: PriceCartResult): boolean {
   return (
     result.lines.some((l) => l.available) &&
     result.totals.unavailableItems.length === 0 &&
+    result.totals.invalidItems.length === 0 &&
     result.totals.totalMinor > 0 &&
     !result.totals.priceChanged
   );

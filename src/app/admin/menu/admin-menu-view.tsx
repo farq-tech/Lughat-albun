@@ -85,7 +85,7 @@ export function AdminMenuView({ categories, products }: AdminMenuViewProps) {
                         ? "…"
                         : product.is_available
                           ? "متوفر"
-                          : "غير متوفر"}
+                          : "نفد"}
                     </button>
                   </li>
                 ))}

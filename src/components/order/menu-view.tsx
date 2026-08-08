@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
+import { SocialLinks } from "@/components/brand/social-links";
 import { useCart } from "@/components/order/cart-store";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +11,6 @@ import {
   unitPriceMinor,
 } from "@/components/order/menu-helpers";
 import { formatSar } from "@/lib/money";
-import { productImageUrl } from "@/lib/product-image";
 import type {
   CartLineInput,
   CartModifierSelection,
@@ -233,6 +233,8 @@ export function MenuView({ menu, source }: MenuViewProps) {
             </div>
           </section>
         ))}
+
+        <SocialLinks className="pb-4 pt-2" />
       </div>
 
       {itemCount > 0 && (
@@ -292,46 +294,30 @@ function ProductCard({
   product: Product;
   onSelect: () => void;
 }) {
-  const imageUrl = productImageUrl(product.image_path);
   return (
     <button
       type="button"
       onClick={onSelect}
       disabled={!product.is_available}
-      className="flex w-full items-stretch gap-3 rounded-xl border border-[var(--line)] bg-[var(--elevated)]/55 p-3 text-right transition hover:border-[var(--accent)]/35 hover:bg-[var(--surface-2)] disabled:opacity-50"
+      className="flex w-full items-center justify-between gap-4 rounded-xl border border-[var(--line)] bg-[var(--elevated)]/55 px-4 py-3.5 text-right transition hover:border-[var(--accent)]/35 hover:bg-[var(--surface-2)] disabled:opacity-50"
     >
-      {imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={imageUrl}
-          alt={product.name_ar}
-          className="h-20 w-20 shrink-0 rounded-xl object-cover"
-          loading="lazy"
-        />
-      ) : (
-        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-3)] text-xs text-[var(--ink-muted)]">
-          لغة البن
-        </div>
-      )}
-      <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
-        <div>
-          <h3 className="font-semibold text-[var(--ink)]">{product.name_ar}</h3>
-          {product.name_en ? (
-            <p className="mt-0.5 text-xs text-[var(--ink-muted)]">{product.name_en}</p>
-          ) : null}
-          {product.description_ar && (
-            <p className="mt-1 line-clamp-2 text-sm text-[var(--ink-muted)]">
-              {product.description_ar}
-            </p>
-          )}
-          {!product.is_available && (
-            <p className="mt-1 text-sm text-[var(--danger)]">غير متوفر</p>
-          )}
-        </div>
-        <p className="mt-2 text-base font-semibold text-[var(--accent)]">
-          {formatSar(product.price_minor)}
-        </p>
+      <div className="min-w-0 flex-1">
+        <h3 className="font-semibold text-[var(--ink)]">{product.name_ar}</h3>
+        {product.name_en ? (
+          <p className="mt-0.5 text-xs text-[var(--ink-muted)]">{product.name_en}</p>
+        ) : null}
+        {product.description_ar && (
+          <p className="mt-1 line-clamp-2 text-sm text-[var(--ink-muted)]">
+            {product.description_ar}
+          </p>
+        )}
+        {!product.is_available && (
+          <p className="mt-1 text-sm text-[var(--danger)]">نفد</p>
+        )}
       </div>
+      <p className="shrink-0 text-base font-semibold text-[var(--accent)]">
+        {formatSar(product.price_minor)}
+      </p>
     </button>
   );
 }
