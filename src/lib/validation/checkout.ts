@@ -52,6 +52,15 @@ export const checkoutSchema = z
       .optional(),
   })
   .superRefine((data, ctx) => {
+    const phone = normalizeSaudiPhone(data.phone);
+    if (!isValidSaudiMobile(phone)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["phone"],
+        message: "رقم الجوال غير صحيح — مثال: 0501234567",
+      });
+    }
+
     if (data.orderType === "DINE_IN") {
       if (!data.tableToken) {
         ctx.addIssue({
@@ -60,17 +69,7 @@ export const checkoutSchema = z
           message: "امسح QR الطاولة من جديد",
         });
       }
-      // Table orders: no customer phone/name required.
       return;
-    }
-
-    const phone = normalizeSaudiPhone(data.phone);
-    if (!isValidSaudiMobile(phone)) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["phone"],
-        message: "رقم الجوال غير صحيح — مثال: 0501234567",
-      });
     }
 
     // Curbside requires vehicle details (saved id or new vehicle)
@@ -83,18 +82,18 @@ export const checkoutSchema = z
     }
   })
   .transform((data) => {
+    const phone = normalizeSaudiPhone(data.phone);
     if (data.orderType === "DINE_IN") {
       return {
         ...data,
-        phone: "table",
-        firstName: null,
+        phone,
         vehicle: null,
         vehicleId: null,
       };
     }
     return {
       ...data,
-      phone: normalizeSaudiPhone(data.phone),
+      phone,
     };
   });
 

@@ -38,7 +38,7 @@ describe("payment method checkout wiring", () => {
     expect(parsed.orderType).toBe("CURBSIDE");
   });
 
-  it("accepts dine-in with tableToken and without vehicle", () => {
+  it("accepts dine-in with phone and tableToken without vehicle", () => {
     const parsed = checkoutSchema.parse({
       items: baseCurbside.items,
       phone: "0501234567",
@@ -49,20 +49,31 @@ describe("payment method checkout wiring", () => {
     });
     expect(parsed.orderType).toBe("DINE_IN");
     expect(parsed.tableToken).toBe("table_token_seed_01");
+    expect(parsed.phone).toBe("0501234567");
+    expect(parsed.vehicle).toBeNull();
   });
 
-  it("accepts dine-in without phone or name (table placeholder)", () => {
-    const parsed = checkoutSchema.parse({
-      items: baseCurbside.items,
-      source: "qr",
-      orderType: "DINE_IN",
-      tableToken: "table_token_seed_01",
-      idempotencyKey: "idem-dine-no-phone-12",
-    });
-    expect(parsed.orderType).toBe("DINE_IN");
-    expect(parsed.phone).toBe("table");
-    expect(parsed.firstName).toBeNull();
-    expect(parsed.vehicle).toBeNull();
+  it("rejects dine-in without phone", () => {
+    expect(() =>
+      checkoutSchema.parse({
+        items: baseCurbside.items,
+        source: "qr",
+        orderType: "DINE_IN",
+        tableToken: "table_token_seed_01",
+        idempotencyKey: "idem-dine-no-phone-12",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects curbside without phone", () => {
+    expect(() =>
+      checkoutSchema.parse({
+        items: baseCurbside.items,
+        vehicle: baseCurbside.vehicle,
+        source: "qr",
+        idempotencyKey: "idem-car-no-phone-123",
+      }),
+    ).toThrow();
   });
 
   it("rejects dine-in without tableToken", () => {
