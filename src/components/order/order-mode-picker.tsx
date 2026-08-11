@@ -38,10 +38,10 @@ export function OrderModePicker({
         </span>
         <span className="min-w-0 flex-1">
           <span className="block font-display text-2xl font-bold text-[var(--ink)]">
-            محلي
+            طلبات الطاولات
           </span>
           <span className="mt-0.5 block text-sm text-[var(--ink-muted)]">
-            امسح QR الطاولة — نجهّز ونوصّل لك
+            امسح QR الطاولة — نجهّز ونوصّل لطاولةك
           </span>
           {!dineInAvailable && dineInMessage ? (
             <span className="mt-1 block text-xs font-medium text-[var(--accent)]">

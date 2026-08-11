@@ -22,7 +22,7 @@ export const en: StaffMessages = {
     plate: "Plate",
     table: "Table",
     curbside: "Curbside",
-    dineIn: "Dine-in",
+    dineIn: "Table",
     since: "for",
     updateFailed: "Could not update order",
     sectionNew: "New",

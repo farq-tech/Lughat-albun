@@ -87,7 +87,7 @@ export default async function OrderLandingPage({ searchParams }: PageProps) {
           قهوتك… بطريقتك.
         </h1>
         <p className="mt-4 max-w-sm text-sm leading-relaxed text-[var(--ink-muted)]">
-          محلي على الطاولة، أو من السيارة — نفس المنيو، نفس الجودة.
+          طلبات الطاولات أو من السيارة — نفس المنيو، نفس الجودة.
         </p>
         {store ? (
           <p className="mt-6 text-sm text-[var(--ink-muted)]">{store.name_ar}</p>
