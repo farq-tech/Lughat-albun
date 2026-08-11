@@ -6,7 +6,7 @@ import {
   getCustomerCookieName,
   getTableCookieName,
 } from "@/lib/auth/customer-token";
-import { DomainError } from "@/server/services/checkout";
+import { DomainError } from "@/server/domain-error";
 import { getDefaultVehicle } from "@/server/services/orders";
 import { resolveTableByToken } from "@/server/services/tables";
 import type { OrderSource } from "@/types/database";
@@ -51,7 +51,7 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
     null;
 
   const orderType: "CURBSIDE" | "DINE_IN" =
-    rawOrderType === "DINE_IN" || tableToken ? "DINE_IN" : "CURBSIDE";
+    rawOrderType === "DINE_IN" || Boolean(tableToken) ? "DINE_IN" : "CURBSIDE";
   let tableLabel: string | null = null;
 
   if (orderType === "DINE_IN") {
@@ -71,13 +71,6 @@ export default async function CheckoutPage({ searchParams }: PageProps) {
     try {
       const table = await resolveTableByToken(tableToken);
       tableLabel = table.label;
-      cookieStore.set(getTableCookieName(), tableToken, {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        path: "/",
-        maxAge: 60 * 60 * 12,
-      });
     } catch (e) {
       const message =
         e instanceof DomainError ? e.message : "ما قدرنا نفتح الطاولة";

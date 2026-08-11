@@ -48,9 +48,9 @@ function SystemPreparing() {
 export default async function OrderLandingPage({ searchParams }: PageProps) {
   const { source, table } = await searchParams;
 
-  // Table QR deep-link goes straight to the menu with the opaque token.
+  // Table QR deep-link: set cookie via route handler, then open menu.
   if (table?.trim()) {
-    redirect(`/order/menu?table=${encodeURIComponent(table.trim())}`);
+    redirect(`/order/table/enter?table=${encodeURIComponent(table.trim())}`);
   }
 
   const orderSource = source === "qr" ? "qr" : "link";

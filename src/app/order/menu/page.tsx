@@ -1,12 +1,9 @@
 import { cookies } from "next/headers";
 import { MenuView, type MenuPayload } from "@/components/order/menu-view";
 import { Button } from "@/components/ui/button";
-import {
-  getCustomerCookieName,
-  getTableCookieName,
-} from "@/lib/auth/customer-token";
+import { getTableCookieName } from "@/lib/auth/customer-token";
 import { getMenu } from "@/server/services/menu";
-import { DomainError } from "@/server/services/checkout";
+import { DomainError } from "@/server/domain-error";
 import { resolveTableByToken } from "@/server/services/tables";
 
 type PageProps = {
@@ -55,13 +52,6 @@ export default async function MenuPage({ searchParams }: PageProps) {
       tableLabel = table.label;
       orderType = "DINE_IN";
       orderSource = "qr";
-      cookieStore.set(getTableCookieName(), tableToken, {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        path: "/",
-        maxAge: 60 * 60 * 12,
-      });
     } catch (e) {
       if (e instanceof DomainError) {
         return <TableError message={e.message} />;
@@ -84,9 +74,6 @@ export default async function MenuPage({ searchParams }: PageProps) {
     groups: menu.groups,
     productGroups: Object.fromEntries(menu.productGroups),
   };
-
-  // Touch customer cookie path so it stays available (no-op read)
-  void cookieStore.get(getCustomerCookieName());
 
   return (
     <MenuView

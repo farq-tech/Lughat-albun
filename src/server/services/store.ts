@@ -2,10 +2,11 @@ import {
   getCarPickupAvailability,
   getDineInStoreAvailability,
 } from "@/domains/store/availability";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 
 async function loadStoreContext() {
-  const supabase = await createClient();
+  // Service client: checkout/availability run outside cookie-bound RSC context too.
+  const supabase = createServiceClient();
   const [{ data: store }, { data: hours }, { data: special }, { data: activeCount }] =
     await Promise.all([
       supabase.from("store_settings").select("*").limit(1).maybeSingle(),
