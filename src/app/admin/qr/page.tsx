@@ -10,14 +10,14 @@ export default function AdminQrPage() {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const orderUrl =
     typeof window !== "undefined"
-      ? `${window.location.origin}/order?source=qr`
-      : `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/order?source=qr`;
+      ? `${window.location.origin}/order/menu?source=qr`
+      : `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/order/menu?source=qr`;
 
   useEffect(() => {
     const url =
       typeof window !== "undefined"
-        ? `${window.location.origin}/order?source=qr`
-        : "/order?source=qr";
+        ? `${window.location.origin}/order/menu?source=qr`
+        : "/order/menu?source=qr";
 
     void QRCode.toDataURL(url, {
       width: 280,

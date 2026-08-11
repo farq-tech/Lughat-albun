@@ -51,9 +51,14 @@ function SystemPreparing() {
 export default async function OrderLandingPage({ searchParams }: PageProps) {
   const { source, table } = await searchParams;
 
-  // Table QR deep-link: set cookie via route handler, then open menu.
+  // Table QR sticker → menu for that table (via cookie enter route).
   if (table?.trim()) {
     redirect(`/order/table/enter?table=${encodeURIComponent(table.trim())}`);
+  }
+
+  // Car QR sticker → straight to menu (skip the mode picker).
+  if (source === "qr") {
+    redirect("/order/menu?source=qr");
   }
 
   const orderSource = source === "qr" ? "qr" : "link";

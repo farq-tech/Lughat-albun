@@ -19,12 +19,9 @@ test.describe("لغات البن curbside happy path", () => {
     page,
     context,
   }) => {
-    await expect(page.getByRole("heading", { name: /لغات البن|قهوتك تجيك/ })).toBeVisible();
-    const start = page.getByRole("link", { name: /ابدأ الطلب/ });
-    await expect(start).toBeVisible();
-    await start.click();
-
+    // Car QR skips the mode picker and opens the menu immediately.
     await expect(page).toHaveURL(/\/order\/menu/);
+    await expect(page.getByText("لغات البن").first()).toBeVisible();
     await page.getByText("آيس لاتيه").first().click();
 
     // modifiers

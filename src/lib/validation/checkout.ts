@@ -24,11 +24,10 @@ export const cartLineSchema = z.object({
 export const checkoutSchema = z
   .object({
     items: z.array(cartLineSchema).min(1, "سلتك فاضية").max(30),
-    phone: z
-      .string()
-      .trim()
-      .transform(normalizeSaudiPhone)
-      .refine(isValidSaudiMobile, "رقم الجوال غير صحيح — مثال: 0501234567"),
+    phone: z.preprocess(
+      (v) => (v == null ? "" : v),
+      z.string().trim(),
+    ),
     firstName: z.preprocess(
       (v) => (typeof v === "string" && v.trim() === "" ? null : v),
       z.string().trim().max(40).nullable().optional(),
@@ -61,8 +60,19 @@ export const checkoutSchema = z
           message: "امسح QR الطاولة من جديد",
         });
       }
+      // Table orders: no customer phone/name required.
       return;
     }
+
+    const phone = normalizeSaudiPhone(data.phone);
+    if (!isValidSaudiMobile(phone)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["phone"],
+        message: "رقم الجوال غير صحيح — مثال: 0501234567",
+      });
+    }
+
     // Curbside requires vehicle details (saved id or new vehicle)
     if (!data.vehicleId && !data.vehicle) {
       ctx.addIssue({
@@ -71,6 +81,21 @@ export const checkoutSchema = z
         message: "أدخل بيانات السيارة",
       });
     }
+  })
+  .transform((data) => {
+    if (data.orderType === "DINE_IN") {
+      return {
+        ...data,
+        phone: "table",
+        firstName: null,
+        vehicle: null,
+        vehicleId: null,
+      };
+    }
+    return {
+      ...data,
+      phone: normalizeSaudiPhone(data.phone),
+    };
   });
 
 export type CheckoutInput = z.infer<typeof checkoutSchema>;

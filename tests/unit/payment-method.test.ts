@@ -51,6 +51,20 @@ describe("payment method checkout wiring", () => {
     expect(parsed.tableToken).toBe("table_token_seed_01");
   });
 
+  it("accepts dine-in without phone or name (table placeholder)", () => {
+    const parsed = checkoutSchema.parse({
+      items: baseCurbside.items,
+      source: "qr",
+      orderType: "DINE_IN",
+      tableToken: "table_token_seed_01",
+      idempotencyKey: "idem-dine-no-phone-12",
+    });
+    expect(parsed.orderType).toBe("DINE_IN");
+    expect(parsed.phone).toBe("table");
+    expect(parsed.firstName).toBeNull();
+    expect(parsed.vehicle).toBeNull();
+  });
+
   it("rejects dine-in without tableToken", () => {
     expect(() =>
       checkoutSchema.parse({
