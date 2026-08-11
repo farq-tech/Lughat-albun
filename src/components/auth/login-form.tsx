@@ -37,8 +37,13 @@ export function LoginForm({
     setLoading(true);
 
     const supabase = createClient();
+    const raw = email.trim();
+    const loginEmail =
+      raw.includes("@") || raw.includes(".")
+        ? raw
+        : `${raw}@lughat.sa`;
     const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
+      email: loginEmail,
       password,
     });
 
@@ -72,12 +77,14 @@ export function LoginForm({
           {labels?.email ?? "البريد / اسم المستخدم"}
         </span>
         <input
-          type="email"
+          type="text"
           required
-          autoComplete="email"
+          autoComplete="username"
+          inputMode="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="ui-input"
+          placeholder="admin"
           dir="ltr"
         />
       </label>
