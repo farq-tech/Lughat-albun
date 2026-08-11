@@ -31,6 +31,14 @@ export type StaffMessages = {
     sectionPreparing: string;
     sectionReady: string;
     sectionLegacy: string;
+    nextUp: string;
+    needsYou: string;
+    waitingOutside: string;
+    tapToOpen: string;
+    stale: string;
+    urgent: string;
+    allClear: string;
+    openOrder: string;
   };
   wait: {
     now: string;
