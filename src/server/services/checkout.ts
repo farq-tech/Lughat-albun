@@ -14,18 +14,14 @@ import {
 } from "@/lib/validation/checkout";
 import { createServiceClient } from "@/lib/supabase/server";
 import { buildPricingCatalog } from "./menu";
-import { getStoreAvailability } from "./store";
+import { getDineInOrderingAvailability, getStoreAvailability } from "./store";
+import { DomainError } from "@/server/domain-error";
+import {
+  getOrCreateOpenTableSession,
+  resolveTableByToken,
+} from "./tables";
 
-export class DomainError extends Error {
-  constructor(
-    public code: string,
-    message: string,
-    public details?: unknown,
-  ) {
-    super(message);
-    this.name = "DomainError";
-  }
-}
+export { DomainError };
 
 export async function createCheckoutAndPay(input: {
   checkout: CheckoutInput;
@@ -38,12 +34,49 @@ export async function createCheckoutAndPay(input: {
     throw new DomainError("RATE_LIMITED", "حاول مرة ثانية بعد شوي");
   }
 
-  const { availability, store } = await getStoreAvailability();
-  if (!availability.available || !store) {
-    throw new DomainError("CAR_PICKUP_UNAVAILABLE", availability.message);
+  const orderType = input.checkout.orderType ?? "CURBSIDE";
+  const isDineIn = orderType === "DINE_IN";
+
+  let store: Awaited<ReturnType<typeof getStoreAvailability>>["store"] = null;
+
+  if (isDineIn) {
+    const dineIn = await getDineInOrderingAvailability();
+    store = dineIn.store;
+    if (!dineIn.availability.available || !store) {
+      throw new DomainError("DINE_IN_UNAVAILABLE", dineIn.availability.message);
+    }
+  } else {
+    const curbside = await getStoreAvailability();
+    store = curbside.store;
+    if (!curbside.availability.available || !store) {
+      throw new DomainError(
+        "CAR_PICKUP_UNAVAILABLE",
+        curbside.availability.message,
+      );
+    }
   }
 
   const supabase = createServiceClient();
+
+  // Resolve table before creating order (dine-in)
+  let tableRef: {
+    tableId: string;
+    sessionId: string;
+    tableNumber: number;
+  } | null = null;
+
+  if (isDineIn) {
+    if (!input.checkout.tableToken) {
+      throw new DomainError("INVALID_TABLE_TOKEN", "امسح QR الطاولة من جديد");
+    }
+    const table = await resolveTableByToken(input.checkout.tableToken);
+    const session = await getOrCreateOpenTableSession(table.id);
+    tableRef = {
+      tableId: table.id,
+      sessionId: session.sessionId,
+      tableNumber: table.tableNumber,
+    };
+  }
 
   // Idempotent replay
   const { data: existingSession } = await supabase
@@ -143,7 +176,7 @@ export async function createCheckoutAndPay(input: {
     anonymousCustomerId = created.id;
   }
 
-  // Vehicle
+  // Vehicle (curbside only)
   let vehicleSnapshot = {
     make_model: "",
     color: "",
@@ -151,40 +184,44 @@ export async function createCheckoutAndPay(input: {
     vehicle_id: null as string | null,
   };
 
-  if (input.checkout.vehicleId) {
-    const { data: vehicle } = await supabase
-      .from("customer_vehicles")
-      .select("*")
-      .eq("id", input.checkout.vehicleId)
-      .eq("anonymous_customer_id", anonymousCustomerId)
-      .maybeSingle();
-    if (!vehicle) throw new DomainError("VEHICLE_NOT_FOUND", "ما لقينا السيارة المحفوظة");
-    vehicleSnapshot = {
-      make_model: vehicle.make_model,
-      color: vehicle.color,
-      plate_hint: vehicle.plate_hint,
-      vehicle_id: vehicle.id,
-    };
-  } else if (input.checkout.vehicle) {
-    const v = input.checkout.vehicle;
-    const { data: saved, error } = await supabase
-      .from("customer_vehicles")
-      .insert({
-        anonymous_customer_id: anonymousCustomerId,
-        make_model: v.makeModel,
-        color: v.color,
-        plate_hint: v.plateHint ?? null,
-        is_default: true,
-      })
-      .select("*")
-      .single();
-    if (error) throw new DomainError("VEHICLE_SAVE_FAILED", "ما قدرنا نحفظ السيارة");
-    vehicleSnapshot = {
-      make_model: saved.make_model,
-      color: saved.color,
-      plate_hint: saved.plate_hint,
-      vehicle_id: saved.id,
-    };
+  if (!isDineIn) {
+    if (input.checkout.vehicleId) {
+      const { data: vehicle } = await supabase
+        .from("customer_vehicles")
+        .select("*")
+        .eq("id", input.checkout.vehicleId)
+        .eq("anonymous_customer_id", anonymousCustomerId)
+        .maybeSingle();
+      if (!vehicle) throw new DomainError("VEHICLE_NOT_FOUND", "ما لقينا السيارة المحفوظة");
+      vehicleSnapshot = {
+        make_model: vehicle.make_model,
+        color: vehicle.color,
+        plate_hint: vehicle.plate_hint,
+        vehicle_id: vehicle.id,
+      };
+    } else if (input.checkout.vehicle) {
+      const v = input.checkout.vehicle;
+      const { data: saved, error } = await supabase
+        .from("customer_vehicles")
+        .insert({
+          anonymous_customer_id: anonymousCustomerId,
+          make_model: v.makeModel,
+          color: v.color,
+          plate_hint: v.plateHint ?? null,
+          is_default: true,
+        })
+        .select("*")
+        .single();
+      if (error) throw new DomainError("VEHICLE_SAVE_FAILED", "ما قدرنا نحفظ السيارة");
+      vehicleSnapshot = {
+        make_model: saved.make_model,
+        color: saved.color,
+        plate_hint: saved.plate_hint,
+        vehicle_id: saved.id,
+      };
+    } else {
+      throw new DomainError("VEHICLE_REQUIRED", "أدخل بيانات السيارة");
+    }
   }
 
   // Prep estimate
@@ -212,6 +249,9 @@ export async function createCheckoutAndPay(input: {
     publicOrderNumber = (count ?? 0) + 1;
   }
 
+  // Dine-in table QR always records source=qr; curbside keeps client source.
+  const orderSource = isDineIn ? "qr" : input.checkout.source;
+
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
@@ -221,6 +261,10 @@ export async function createCheckoutAndPay(input: {
       customer_name: input.checkout.firstName ?? null,
       phone: input.checkout.phone,
       status: "PENDING_PAYMENT",
+      order_type: orderType,
+      table_id: tableRef?.tableId ?? null,
+      table_session_id: tableRef?.sessionId ?? null,
+      table_number_snapshot: tableRef?.tableNumber ?? null,
       vehicle_id: vehicleSnapshot.vehicle_id,
       car_make_model_snapshot: vehicleSnapshot.make_model || null,
       car_color_snapshot: vehicleSnapshot.color || null,
@@ -230,7 +274,7 @@ export async function createCheckoutAndPay(input: {
       service_fee_minor: priced.totals.serviceFeeMinor,
       total_minor: priced.totals.totalMinor,
       currency: priced.totals.currency,
-      source: input.checkout.source,
+      source: orderSource,
       payment_status: "PENDING",
       payment_method: toDbPaymentMethod(
         input.checkout.paymentMethod ?? "cash_on_delivery",
@@ -303,7 +347,13 @@ export async function createCheckoutAndPay(input: {
     from_status: null,
     to_status: "PENDING_PAYMENT",
     actor_type: "CUSTOMER",
-    metadata: { source: input.checkout.source },
+    metadata: {
+      source: orderSource,
+      orderType,
+      tableId: tableRef?.tableId ?? null,
+      tableSessionId: tableRef?.sessionId ?? null,
+      tableNumber: tableRef?.tableNumber ?? null,
+    },
   });
 
   await supabase.from("checkout_sessions").insert({
@@ -313,8 +363,10 @@ export async function createCheckoutAndPay(input: {
     totals_snapshot: priced.totals,
     phone: input.checkout.phone,
     customer_name: input.checkout.firstName ?? null,
-    vehicle_snapshot: vehicleSnapshot,
-    source: input.checkout.source,
+    vehicle_snapshot: isDineIn
+      ? { orderType: "DINE_IN", tableNumber: tableRef?.tableNumber }
+      : vehicleSnapshot,
+    source: orderSource,
     order_id: order.id,
     status: "ORDER_CREATED",
   });
@@ -391,6 +443,7 @@ export async function createCheckoutAndPay(input: {
       orderId: order.id,
       publicOrderNumber: order.public_order_number,
       event: "checkout_cod_confirmed",
+      orderType,
     });
 
     return {
@@ -471,6 +524,7 @@ export async function createCheckoutAndPay(input: {
     orderId: order.id,
     publicOrderNumber: order.public_order_number,
     event: "checkout_completed",
+    orderType,
   });
 
   return {

@@ -20,6 +20,9 @@ export const ar: StaffMessages = {
     empty: "لا طلبات",
     items: "أصناف",
     plate: "لوحة",
+    table: "طاولة",
+    curbside: "من السيارة",
+    dineIn: "داخل المقهى",
     since: "منذ",
     updateFailed: "تعذر تحديث حالة الطلب",
     sectionNew: "جديد",
@@ -43,6 +46,7 @@ export const ar: StaffMessages = {
   },
   detail: {
     car: "السيارة",
+    table: "الطاولة",
     plate: "اللوحة",
     locationNote: "ملاحظة موقع",
     phone: "الجوال",

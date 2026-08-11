@@ -20,6 +20,9 @@ export const en: StaffMessages = {
     empty: "No orders",
     items: "items",
     plate: "Plate",
+    table: "Table",
+    curbside: "Curbside",
+    dineIn: "Dine-in",
     since: "for",
     updateFailed: "Could not update order",
     sectionNew: "New",
@@ -43,6 +46,7 @@ export const en: StaffMessages = {
   },
   detail: {
     car: "Car",
+    table: "Table",
     plate: "Plate",
     locationNote: "Location note",
     phone: "Phone",

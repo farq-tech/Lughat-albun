@@ -149,6 +149,17 @@ Location hint only after staff presses **ما لقيت السيارة** (progres
 
 ---
 
+## Order types
+
+| Type | Identity | Kitchen path |
+|---|---|---|
+| `CURBSIDE` | Vehicle snapshots | READY → (arrival) → DELIVERED |
+| `DINE_IN` | `table_id` + `table_session_id` | READY → DELIVERED |
+
+Table QR URL: `/order/menu?table=<opaque-token>` (never embeds table number).
+
+---
+
 ## Local setup
 
 ```bash

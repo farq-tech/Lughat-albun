@@ -30,6 +30,8 @@ export type PaymentMethod =
 
 export type ActorType = "CUSTOMER" | "STAFF" | "SYSTEM" | "PAYMENT_PROVIDER";
 export type OrderSource = "qr" | "link" | "repeat" | "admin";
+export type OrderType = "CURBSIDE" | "DINE_IN";
+export type TableSessionStatus = "OPEN" | "CLOSED";
 
 export type CustomerPresence =
   | "none"
@@ -174,6 +176,10 @@ export interface OrderRecord {
   total_minor: number;
   currency: string;
   source: OrderSource;
+  order_type?: OrderType;
+  table_id?: string | null;
+  table_session_id?: string | null;
+  table_number_snapshot?: number | null;
   payment_status: PaymentStatus;
   payment_method?: PaymentMethod | null;
   estimated_prep_min: number | null;

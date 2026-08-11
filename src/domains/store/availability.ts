@@ -134,6 +134,32 @@ export function getCarPickupAvailability(
   return { available: true, message: "طلبات السيارة متاحة الآن" };
 }
 
+/** Dine-in / in-store: open hours + pause only (no car capacity). */
+export function getDineInStoreAvailability(input: {
+  nowUtc: Date;
+  timezone?: string;
+  temporaryPause: boolean;
+  hours: StoreHourRow[];
+  specialHours?: SpecialHourRow[];
+}): CarPickupAvailability {
+  const tz = input.timezone ?? "Asia/Riyadh";
+  if (input.temporaryPause) {
+    return {
+      available: false,
+      reason: "PAUSED",
+      message: "الطلبات متوقفة مؤقتًا بسبب ضغط الطلبات",
+    };
+  }
+  if (!isOpenNow(input.hours, input.specialHours, input.nowUtc, tz)) {
+    return {
+      available: false,
+      reason: "CLOSED",
+      message: "المقهى مغلق الآن",
+    };
+  }
+  return { available: true, message: "طلبات الطاولة متاحة الآن" };
+}
+
 export function estimatePrepRange(params: {
   basePrepMinutes: number;
   activePreparingOrders: number;

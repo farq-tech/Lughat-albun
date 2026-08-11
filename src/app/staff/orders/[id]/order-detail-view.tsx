@@ -29,6 +29,8 @@ type OrderDetail = {
     status: OrderStatus;
     phone: string;
     customer_name: string | null;
+    order_type?: "CURBSIDE" | "DINE_IN" | null;
+    table_number_snapshot?: number | null;
     car_make_model_snapshot: string | null;
     car_color_snapshot: string | null;
     plate_hint_snapshot: string | null;
@@ -91,13 +93,15 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const { order, items, events } = data;
+  const isDineIn = (order.order_type ?? "CURBSIDE") === "DINE_IN";
   const action = staffPrimaryAction(order.status);
   const presence = normalizePresence(order);
   const canRequestLocateHelp =
-    order.status === "READY" ||
-    order.status === "CUSTOMER_ARRIVED" ||
-    presence === "outside" ||
-    presence === "on_the_way";
+    !isDineIn &&
+    (order.status === "READY" ||
+      order.status === "CUSTOMER_ARRIVED" ||
+      presence === "outside" ||
+      presence === "on_the_way");
 
   async function transition() {
     if (!action) return;
@@ -150,10 +154,16 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
                 status={order.status}
                 label={statusLabel(order.status, t.status)}
               />
-              <ArrivalBadge
-                presence={presence}
-                label={presenceLabel(presence, t.presence)}
-              />
+              {isDineIn ? (
+                <span className="rounded-lg bg-[var(--surface-3)] px-2 py-1 text-xs font-medium">
+                  {t.queue.dineIn}
+                </span>
+              ) : (
+                <ArrivalBadge
+                  presence={presence}
+                  label={presenceLabel(presence, t.presence)}
+                />
+              )}
             </div>
           </div>
           <div className="flex flex-col items-end gap-2 text-left">
@@ -173,25 +183,40 @@ export function OrderDetailView({ data }: { data: OrderDetail }) {
         ) : null}
 
         <dl className="mt-4 grid gap-2 text-sm">
-          <div className="flex justify-between gap-3">
-            <dt className="text-[var(--ink-muted)]">{t.detail.car}</dt>
-            <dd className="text-end">
-              {order.car_make_model_snapshot ?? "—"}
-              {order.car_color_snapshot ? ` · ${order.car_color_snapshot}` : ""}
-            </dd>
-          </div>
-          {order.plate_hint_snapshot ? (
+          {isDineIn ? (
             <div className="flex justify-between gap-3">
-              <dt className="text-[var(--ink-muted)]">{t.detail.plate}</dt>
-              <dd>{order.plate_hint_snapshot}</dd>
+              <dt className="text-[var(--ink-muted)]">{t.detail.table}</dt>
+              <dd className="text-end">
+                {t.queue.table} {order.table_number_snapshot ?? "—"}
+              </dd>
             </div>
-          ) : null}
-          {order.location_hint ? (
-            <div className="flex justify-between gap-3">
-              <dt className="text-[var(--ink-muted)]">{t.detail.locationNote}</dt>
-              <dd className="text-end">{order.location_hint}</dd>
-            </div>
-          ) : null}
+          ) : (
+            <>
+              <div className="flex justify-between gap-3">
+                <dt className="text-[var(--ink-muted)]">{t.detail.car}</dt>
+                <dd className="text-end">
+                  {order.car_make_model_snapshot ?? "—"}
+                  {order.car_color_snapshot
+                    ? ` · ${order.car_color_snapshot}`
+                    : ""}
+                </dd>
+              </div>
+              {order.plate_hint_snapshot ? (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[var(--ink-muted)]">{t.detail.plate}</dt>
+                  <dd>{order.plate_hint_snapshot}</dd>
+                </div>
+              ) : null}
+              {order.location_hint ? (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[var(--ink-muted)]">
+                    {t.detail.locationNote}
+                  </dt>
+                  <dd className="text-end">{order.location_hint}</dd>
+                </div>
+              ) : null}
+            </>
+          )}
           <div className="flex justify-between gap-3">
             <dt className="text-[var(--ink-muted)]">{t.detail.phone}</dt>
             <dd dir="ltr">{order.phone}</dd>

@@ -133,10 +133,41 @@ export function staffPrimaryAction(status: OrderStatus): {
   }
 }
 
-export function customerStatusCopy(status: OrderStatus): {
+export function customerStatusCopy(
+  status: OrderStatus,
+  orderType: "CURBSIDE" | "DINE_IN" = "CURBSIDE",
+): {
   title: string;
   body: string;
 } {
+  if (orderType === "DINE_IN") {
+    switch (status) {
+      case "PENDING_PAYMENT":
+        return { title: "بانتظار الدفع", body: "كمّل الدفع عشان نبدأ نجهز طلبك." };
+      case "PAID":
+        return { title: "طلبك وصلنا", body: "بانتظار قبول المحل" };
+      case "ACCEPTED":
+      case "PREPARING":
+        return { title: "جاري التجهيز", body: "قاعدين نجهّز طلبك للطاولة." };
+      case "READY":
+        return {
+          title: "جاهز",
+          body: "طلبك جاهز — الموظف بيوصّله لطاولةك.",
+        };
+      case "DELIVERED":
+        return {
+          title: "تم التسليم",
+          body: "بالعافية. لو تبي شي ثاني اطلب من نفس الرابط.",
+        };
+      case "CANCELLED":
+        return { title: "الطلب ملغي", body: "إذا تبي، اطلب من جديد بسهولة." };
+      case "REFUNDED":
+        return { title: "تم الاسترجاع", body: "المبلغ راجع لك." };
+      default:
+        return { title: "طلبك", body: "" };
+    }
+  }
+
   switch (status) {
     case "PENDING_PAYMENT":
       return { title: "بانتظار الدفع", body: "كمّل الدفع عشان نبدأ نجهز طلبك." };

@@ -1,9 +1,14 @@
 import { createHash, randomBytes } from "crypto";
 
 const COOKIE_NAME = "lab_customer";
+const TABLE_COOKIE_NAME = "lab_table";
 
 export function getCustomerCookieName() {
   return COOKIE_NAME;
+}
+
+export function getTableCookieName() {
+  return TABLE_COOKIE_NAME;
 }
 
 export function generateOpaqueToken(): string {
