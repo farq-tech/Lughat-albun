@@ -1,8 +1,11 @@
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { SocialLinks } from "@/components/brand/social-links";
-import { Button } from "@/components/ui/button";
-import { getStoreAvailability } from "@/server/services/store";
+import { OrderModePicker } from "@/components/order/order-mode-picker";
+import {
+  getDineInOrderingAvailability,
+  getStoreAvailability,
+} from "@/server/services/store";
 
 type PageProps = {
   searchParams: Promise<{ source?: string; table?: string }>;
@@ -48,70 +51,71 @@ function SystemPreparing() {
 export default async function OrderLandingPage({ searchParams }: PageProps) {
   const { source, table } = await searchParams;
 
-  // Table QR deep-link: set cookie via route handler, then open menu.
+  // Table QR sticker → menu for that table (via cookie enter route).
   if (table?.trim()) {
     redirect(`/order/table/enter?table=${encodeURIComponent(table.trim())}`);
   }
 
+  // Car QR sticker → straight to menu (skip the mode picker).
+  if (source === "qr") {
+    redirect("/order/menu?source=qr");
+  }
+
   const orderSource = source === "qr" ? "qr" : "link";
 
-  let availabilityData: Awaited<ReturnType<typeof getStoreAvailability>> | null =
+  let carData: Awaited<ReturnType<typeof getStoreAvailability>> | null = null;
+  let dineInData: Awaited<ReturnType<typeof getDineInOrderingAvailability>> | null =
     null;
 
   try {
-    availabilityData = await getStoreAvailability();
+    [carData, dineInData] = await Promise.all([
+      getStoreAvailability(),
+      getDineInOrderingAvailability(),
+    ]);
   } catch {
     return <SystemPreparing />;
   }
 
-  const { availability, store } = availabilityData;
-  const canOrder = availability.available;
-  const menuHref = `/order/menu?source=${orderSource}`;
+  const carAvailable = carData.availability.available;
+  const dineInAvailable = dineInData.availability.available;
+  const store = dineInData.store ?? carData.store;
+  const carHref = `/order/menu?source=${orderSource}`;
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-lg flex-col px-7 pb-10 pt-12">
       <header className="flex flex-col items-center text-center">
         <BrandMark />
-        {!canOrder ? (
-          <p
-            className="mt-6 text-sm font-medium text-[var(--accent)] animate-fade-up stagger-1"
-            aria-live="polite"
-          >
-            {availability.message}
-          </p>
-        ) : null}
       </header>
 
       <section className="mt-10 flex flex-1 flex-col items-center text-center animate-fade-up stagger-2">
         <h1 className="font-display text-3xl leading-snug text-[var(--ink)] sm:text-4xl">
-          قهوتك توصلك لسيارتك.
+          قهوتك… بطريقتك.
         </h1>
+        <p className="mt-4 max-w-sm text-sm leading-relaxed text-[var(--ink-muted)]">
+          طلبات الطاولات أو من السيارة — نفس المنيو، نفس الجودة.
+        </p>
         {store ? (
           <p className="mt-6 text-sm text-[var(--ink-muted)]">{store.name_ar}</p>
         ) : null}
       </section>
 
-      <footer className="mt-auto space-y-3 pt-10 animate-fade-up stagger-3">
-        {canOrder ? (
-          <Button asLink href={menuHref} size="lg" className="w-full">
-            ابدأ الطلب
-          </Button>
-        ) : (
-          <>
-            <Button disabled size="lg" className="w-full">
-              ابدأ الطلب
-            </Button>
-            <p className="text-center text-sm text-[var(--ink-muted)]">
-              {availability.message}
-            </p>
-          </>
-        )}
+      <OrderModePicker
+        carAvailable={carAvailable}
+        dineInAvailable={dineInAvailable}
+        carMessage={
+          carData.availability.available
+            ? undefined
+            : carData.availability.message
+        }
+        dineInMessage={
+          dineInData.availability.available
+            ? undefined
+            : dineInData.availability.message
+        }
+        carHref={carHref}
+      />
 
-        <p className="text-center text-sm text-[var(--ink-muted)]">
-          طلب واستلام من السيارة
-        </p>
-        <SocialLinks className="pt-2" />
-      </footer>
+      <SocialLinks className="mt-6 pt-2" />
     </main>
   );
 }

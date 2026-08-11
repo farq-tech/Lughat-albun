@@ -16,7 +16,7 @@ export default async function AdminPage() {
   }
 
   const links = [
-    { href: "/admin/tables", title: "الطاولات", desc: "QR لكل طاولة · داخل المقهى" },
+    { href: "/admin/tables", title: "الطاولات", desc: "QR لكل طاولة · طلبات الطاولات" },
     { href: "/admin/qr", title: "QR السيارة", desc: "ملصق الطلب من السيارة" },
     { href: "/admin/menu", title: "إدارة المنيو", desc: "توفر الأصناف" },
     { href: "/staff", title: "طابور الموظفين", desc: "واجهة التشغيل" },

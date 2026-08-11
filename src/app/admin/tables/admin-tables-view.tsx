@@ -122,7 +122,7 @@ export function AdminTablesView({ initialTables }: AdminTablesViewProps) {
       <header className="mb-8">
         <h1 className="font-display text-3xl font-bold">الطاولات</h1>
         <p className="mt-1 text-[var(--ink-muted)]">
-          QR لكل طاولة → جلسة → طلب داخل المقهى
+          QR لكل طاولة → جلسة → طلب الطاولة
         </p>
       </header>
 

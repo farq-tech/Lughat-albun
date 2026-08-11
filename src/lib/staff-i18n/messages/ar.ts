@@ -22,7 +22,7 @@ export const ar: StaffMessages = {
     plate: "لوحة",
     table: "طاولة",
     curbside: "من السيارة",
-    dineIn: "داخل المقهى",
+    dineIn: "طاولة",
     since: "منذ",
     updateFailed: "تعذر تحديث حالة الطلب",
     sectionNew: "جديد",
