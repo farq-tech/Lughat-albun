@@ -1,10 +1,11 @@
 import Image from "next/image";
+import { redirect } from "next/navigation";
 import { SocialLinks } from "@/components/brand/social-links";
 import { Button } from "@/components/ui/button";
 import { getStoreAvailability } from "@/server/services/store";
 
 type PageProps = {
-  searchParams: Promise<{ source?: string }>;
+  searchParams: Promise<{ source?: string; table?: string }>;
 };
 
 function BrandMark() {
@@ -45,7 +46,13 @@ function SystemPreparing() {
 }
 
 export default async function OrderLandingPage({ searchParams }: PageProps) {
-  const { source } = await searchParams;
+  const { source, table } = await searchParams;
+
+  // Table QR deep-link goes straight to the menu with the opaque token.
+  if (table?.trim()) {
+    redirect(`/order/menu?table=${encodeURIComponent(table.trim())}`);
+  }
+
   const orderSource = source === "qr" ? "qr" : "link";
 
   let availabilityData: Awaited<ReturnType<typeof getStoreAvailability>> | null =

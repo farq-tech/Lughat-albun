@@ -1,9 +1,16 @@
+import { cookies } from "next/headers";
 import { MenuView, type MenuPayload } from "@/components/order/menu-view";
 import { Button } from "@/components/ui/button";
+import {
+  getCustomerCookieName,
+  getTableCookieName,
+} from "@/lib/auth/customer-token";
 import { getMenu } from "@/server/services/menu";
+import { DomainError } from "@/server/services/checkout";
+import { resolveTableByToken } from "@/server/services/tables";
 
 type PageProps = {
-  searchParams: Promise<{ source?: string }>;
+  searchParams: Promise<{ source?: string; table?: string }>;
 };
 
 function SystemPreparing() {
@@ -18,9 +25,50 @@ function SystemPreparing() {
   );
 }
 
+function TableError({ message }: { message: string }) {
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center px-6 py-16 text-center">
+      <p className="font-display text-2xl text-[var(--ink)]">لغات البن</p>
+      <p className="mt-8 text-lg text-[var(--ink-muted)]">{message}</p>
+      <Button asLink href="/order" variant="secondary" className="mt-8">
+        طلب من السيارة
+      </Button>
+    </main>
+  );
+}
+
 export default async function MenuPage({ searchParams }: PageProps) {
-  const { source } = await searchParams;
-  const orderSource = source === "qr" ? "qr" : "link";
+  const { source, table: tableTokenParam } = await searchParams;
+  const cookieStore = await cookies();
+  const tableToken =
+    tableTokenParam?.trim() ||
+    cookieStore.get(getTableCookieName())?.value ||
+    null;
+
+  let tableLabel: string | null = null;
+  let orderType: "CURBSIDE" | "DINE_IN" = "CURBSIDE";
+  let orderSource: "qr" | "link" = source === "qr" ? "qr" : "link";
+
+  if (tableToken) {
+    try {
+      const table = await resolveTableByToken(tableToken);
+      tableLabel = table.label;
+      orderType = "DINE_IN";
+      orderSource = "qr";
+      cookieStore.set(getTableCookieName(), tableToken, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 60 * 60 * 12,
+      });
+    } catch (e) {
+      if (e instanceof DomainError) {
+        return <TableError message={e.message} />;
+      }
+      return <TableError message="ما قدرنا نفتح الطاولة" />;
+    }
+  }
 
   let menu: Awaited<ReturnType<typeof getMenu>> | null = null;
 
@@ -37,7 +85,16 @@ export default async function MenuPage({ searchParams }: PageProps) {
     productGroups: Object.fromEntries(menu.productGroups),
   };
 
+  // Touch customer cookie path so it stays available (no-op read)
+  void cookieStore.get(getCustomerCookieName());
+
   return (
-    <MenuView menu={payload} source={orderSource} />
+    <MenuView
+      menu={payload}
+      source={orderSource}
+      orderType={orderType}
+      tableLabel={tableLabel}
+      tableToken={orderType === "DINE_IN" ? tableToken : null}
+    />
   );
 }

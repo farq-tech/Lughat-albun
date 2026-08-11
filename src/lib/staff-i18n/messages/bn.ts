@@ -20,6 +20,9 @@ export const bn: StaffMessages = {
     empty: "কোনো অর্ডার নেই",
     items: "আইটেম",
     plate: "প্লেট",
+    table: "টেবিল",
+    curbside: "কার্বসাইড",
+    dineIn: "ডাইন-ইন",
     since: "ধরে",
     updateFailed: "অর্ডার আপডেট করা যায়নি",
     sectionNew: "নতুন",
@@ -43,6 +46,7 @@ export const bn: StaffMessages = {
   },
   detail: {
     car: "গাড়ি",
+    table: "টেবিল",
     plate: "প্লেট",
     locationNote: "লোকেশন নোট",
     phone: "ফোন",

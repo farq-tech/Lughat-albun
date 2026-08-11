@@ -29,6 +29,9 @@ export type MenuPayload = {
 type MenuViewProps = {
   menu: MenuPayload;
   source: "qr" | "link" | "repeat" | "admin";
+  orderType?: "CURBSIDE" | "DINE_IN";
+  tableLabel?: string | null;
+  tableToken?: string | null;
 };
 
 type ActiveProduct = {
@@ -72,7 +75,20 @@ function defaultSelections(groups: ModifierGroup[]): CartModifierSelection[] {
   return selections;
 }
 
-export function MenuView({ menu, source }: MenuViewProps) {
+export function MenuView({
+  menu,
+  source,
+  orderType = "CURBSIDE",
+  tableLabel = null,
+  tableToken = null,
+}: MenuViewProps) {
+  const isDineIn = orderType === "DINE_IN";
+  const checkoutHref = isDineIn
+    ? `/order/checkout?orderType=DINE_IN&source=qr${
+        tableToken ? `&table=${encodeURIComponent(tableToken)}` : ""
+      }`
+    : `/order/checkout?source=${source}`;
+
   const { items, addItem, removeItem, setQuantity, itemCount, replaceItems } =
     useCart();
 
@@ -250,7 +266,13 @@ export function MenuView({ menu, source }: MenuViewProps) {
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="font-display text-xl text-[var(--ink)]">لغات البن</p>
-            <p className="text-xs text-[var(--ink-muted)]">طلب من السيارة</p>
+            <p className="text-xs text-[var(--ink-muted)]">
+              {isDineIn
+                ? tableLabel
+                  ? `طلب للطاولة · ${tableLabel}`
+                  : "طلب للطاولة"
+                : "طلب من السيارة"}
+            </p>
           </div>
           <Button
             variant="secondary"
@@ -342,7 +364,7 @@ export function MenuView({ menu, source }: MenuViewProps) {
           items={items}
           menu={menu}
           productMap={productMap}
-          source={source}
+          checkoutHref={checkoutHref}
           onClose={() => setCartOpen(false)}
           onRemove={removeItem}
           onQuantity={setQuantity}
@@ -523,7 +545,7 @@ function CartSheet({
   items,
   menu,
   productMap,
-  source,
+  checkoutHref,
   onClose,
   onRemove,
   onQuantity,
@@ -532,7 +554,7 @@ function CartSheet({
   items: CartLineInput[];
   menu: MenuPayload;
   productMap: Map<string, Product>;
-  source: MenuViewProps["source"];
+  checkoutHref: string;
   onClose: () => void;
   onRemove: (index: number) => void;
   onQuantity: (index: number, qty: number) => void;
@@ -640,7 +662,7 @@ function CartSheet({
             </span>
           </div>
           {items.length > 0 && (
-            <Button asLink href={`/order/checkout?source=${source}`} size="lg" className="w-full">
+            <Button asLink href={checkoutHref} size="lg" className="w-full">
               إكمال الطلب
             </Button>
           )}

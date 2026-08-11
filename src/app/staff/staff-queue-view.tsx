@@ -380,26 +380,43 @@ function OrderCard({
         </div>
 
         <div className="mb-2 flex flex-wrap gap-1.5">
-          <ArrivalBadge
-            presence={presence}
-            label={presenceLabel(presence, t.presence)}
-          />
-          {presenceSince > 0 && presence !== "none" ? (
-            <span className="text-xs text-[var(--ink-muted)]">
-              {t.queue.since} {formatStaffWait(presenceSince, t.wait)}
+          {(order.order_type ?? "CURBSIDE") === "DINE_IN" ? (
+            <span className="rounded-lg bg-[var(--surface-3)] px-2 py-0.5 text-xs font-medium">
+              {t.queue.dineIn} · {t.queue.table}{" "}
+              {order.table_number_snapshot ?? "—"}
             </span>
-          ) : null}
+          ) : (
+            <>
+              <ArrivalBadge
+                presence={presence}
+                label={presenceLabel(presence, t.presence)}
+              />
+              {presenceSince > 0 && presence !== "none" ? (
+                <span className="text-xs text-[var(--ink-muted)]">
+                  {t.queue.since} {formatStaffWait(presenceSince, t.wait)}
+                </span>
+              ) : null}
+            </>
+          )}
         </div>
 
-        <p className="text-sm font-semibold text-[var(--ink)]">
-          {order.car_make_model_snapshot ?? "—"}
-          {order.car_color_snapshot ? ` · ${order.car_color_snapshot}` : ""}
-        </p>
-        {order.plate_hint_snapshot ? (
-          <p className="text-xs text-[var(--ink-muted)]">
-            {t.queue.plate} • {order.plate_hint_snapshot}
+        {(order.order_type ?? "CURBSIDE") === "DINE_IN" ? (
+          <p className="text-sm font-semibold text-[var(--ink)]">
+            {t.queue.table} {order.table_number_snapshot ?? "—"}
           </p>
-        ) : null}
+        ) : (
+          <>
+            <p className="text-sm font-semibold text-[var(--ink)]">
+              {order.car_make_model_snapshot ?? "—"}
+              {order.car_color_snapshot ? ` · ${order.car_color_snapshot}` : ""}
+            </p>
+            {order.plate_hint_snapshot ? (
+              <p className="text-xs text-[var(--ink-muted)]">
+                {t.queue.plate} • {order.plate_hint_snapshot}
+              </p>
+            ) : null}
+          </>
+        )}
 
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[var(--ink-muted)]">
           <span>

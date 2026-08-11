@@ -1,14 +1,14 @@
 import type { CustomerPresence } from "@/domains/orders/customer-presence";
 import {
-  canTransition,
   eventTypeForTransition,
   staffPrimaryAction,
 } from "@/domains/orders/state-machine";
+import { canTransitionForOrderType } from "@/domains/orders/order-type";
 import { log, newRequestId } from "@/lib/logging";
 import { rateLimit } from "@/lib/rate-limit";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { DomainError } from "./checkout";
-import type { OrderStatus, StaffRole } from "@/types/database";
+import { DomainError } from "@/server/domain-error";
+import type { OrderStatus, OrderType, StaffRole } from "@/types/database";
 
 function normalizePresence(value: unknown): CustomerPresence {
   if (
@@ -66,17 +66,21 @@ export async function listStaffQueue() {
 
   return (orders ?? []).map((o) => {
     const presence = normalizePresence(o.customer_presence);
+    const orderType = (o.order_type as OrderType | null) ?? "CURBSIDE";
     const inferredPresence =
-      presence !== "none"
-        ? presence
-        : o.status === "CUSTOMER_ARRIVED" || o.status === "OUT_FOR_DELIVERY"
-          ? ("outside" as const)
-          : o.customer_on_the_way
-            ? ("on_the_way" as const)
-            : ("none" as const);
+      orderType === "DINE_IN"
+        ? ("none" as const)
+        : presence !== "none"
+          ? presence
+          : o.status === "CUSTOMER_ARRIVED" || o.status === "OUT_FOR_DELIVERY"
+            ? ("outside" as const)
+            : o.customer_on_the_way
+              ? ("on_the_way" as const)
+              : ("none" as const);
 
     return {
       ...o,
+      order_type: orderType,
       customer_presence: inferredPresence,
       itemCount: o.order_items?.length ?? 0,
       primaryAction: staffPrimaryAction(o.status as OrderStatus),
@@ -146,6 +150,7 @@ export async function staffTransition(input: {
 
   const from = order.status as OrderStatus;
   let to = input.toStatus;
+  const orderType = (order.order_type as OrderType | null) ?? "CURBSIDE";
 
   // Normalize accept action: PAID/ACCEPTED → PREPARING
   if (
@@ -165,11 +170,19 @@ export async function staffTransition(input: {
     to = "DELIVERED";
   }
 
+  // Dine-in never uses car-arrival statuses
+  if (
+    orderType === "DINE_IN" &&
+    (to === "CUSTOMER_ARRIVED" || to === "OUT_FOR_DELIVERY")
+  ) {
+    to = "DELIVERED";
+  }
+
   if (from === "DELIVERED" || from === "CANCELLED" || from === "REFUNDED") {
     throw new DomainError("ORDER_COMPLETED", "الطلب مكتمل، ما ينفع تعديله");
   }
 
-  const check = canTransition(from, to, "STAFF");
+  const check = canTransitionForOrderType(from, to, "STAFF", orderType);
   if (!check.ok) throw new DomainError("INVALID_TRANSITION", "انتقال غير مسموح");
 
   const { data, error } = await supabase.rpc("transition_order", {
@@ -179,7 +192,7 @@ export async function staffTransition(input: {
     p_event_type: eventTypeForTransition(to),
     p_actor_type: "STAFF",
     p_actor_id: user.id,
-    p_metadata: {},
+    p_metadata: { orderType },
   });
 
   if (error) {
@@ -187,6 +200,11 @@ export async function staffTransition(input: {
       throw new DomainError("CONFLICT", "أحد غير الحالة قبلك");
     }
     throw new DomainError("TRANSITION_FAILED", "فشل تحديث الحالة");
+  }
+
+  if (to === "DELIVERED" && order.table_session_id) {
+    const { maybeCloseTableSession } = await import("./tables");
+    await maybeCloseTableSession(order.table_session_id as string);
   }
 
   log({
@@ -218,6 +236,9 @@ export async function staffCannotLocate(orderId: string) {
     presence === "on_the_way";
   if (!canHelp) {
     throw new DomainError("INVALID_STATE", "الطلب مو في حالة وصول");
+  }
+  if ((order.order_type as OrderType | null) === "DINE_IN") {
+    throw new DomainError("INVALID_STATE", "طلبات الطاولة ما تحتاج موقع سيارة");
   }
 
   await supabase

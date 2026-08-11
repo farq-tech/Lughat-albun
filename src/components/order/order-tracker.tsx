@@ -68,7 +68,9 @@ export function OrderTracker({
   const [locationHint, setLocationHint] = useState("");
 
   const { order } = data;
-  const copy = customerStatusCopy(order.status);
+  const orderType = order.order_type ?? "CURBSIDE";
+  const isDineIn = orderType === "DINE_IN";
+  const copy = customerStatusCopy(order.status, orderType);
   const presence = normalizePresence(order);
 
   const refresh = useCallback(() => {
@@ -112,9 +114,11 @@ export function OrderTracker({
         )
       : null;
 
-  const presenceAllowed = (
-    PRESENCE_ALLOWED_ORDER_STATUSES as readonly string[]
-  ).includes(order.status);
+  const presenceAllowed =
+    !isDineIn &&
+    (PRESENCE_ALLOWED_ORDER_STATUSES as readonly string[]).includes(
+      order.status,
+    );
   const availablePresenceActions = presenceAllowed
     ? nextPresenceActions(presence)
     : [];
@@ -218,9 +222,16 @@ export function OrderTracker({
         </section>
       ) : null}
 
-      {(vehicleLabel || order.payment_method) && (
+      {(vehicleLabel || order.payment_method || isDineIn) && (
         <section className="ui-panel-soft mt-4 space-y-3 p-4 animate-fade-up stagger-2">
-          {vehicleLabel ? (
+          {isDineIn ? (
+            <div>
+              <p className="text-sm text-[var(--ink-muted)]">الطاولة</p>
+              <p className="mt-1 font-semibold">
+                طاولة {order.table_number_snapshot ?? "—"}
+              </p>
+            </div>
+          ) : vehicleLabel ? (
             <div>
               <p className="text-sm text-[var(--ink-muted)]">سيارتك</p>
               <p className="mt-1 font-semibold">

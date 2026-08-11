@@ -21,31 +21,57 @@ export const cartLineSchema = z.object({
   ),
 });
 
-export const checkoutSchema = z.object({
-  items: z.array(cartLineSchema).min(1, "سلتك فاضية").max(30),
-  phone: z
-    .string()
-    .trim()
-    .transform(normalizeSaudiPhone)
-    .refine(isValidSaudiMobile, "رقم الجوال غير صحيح — مثال: 0501234567"),
-  firstName: z.preprocess(
-    (v) => (typeof v === "string" && v.trim() === "" ? null : v),
-    z.string().trim().max(40).nullable().optional(),
-  ),
-  vehicle: vehicleSchema.optional().nullable(),
-  vehicleId: z.preprocess(
-    (v) => (v === "" ? null : v),
-    idSchema.nullable().optional(),
-  ),
-  clientTotalMinor: z.number().int().nonnegative().optional(),
-  source: z.enum(["qr", "link", "repeat", "admin"]).default("link"),
-  idempotencyKey: z.string().min(8).max(128),
-  // COD-only storefront for now.
-  paymentMethod: z.literal("cash_on_delivery").default("cash_on_delivery"),
-  paymentSimulate: z
-    .enum(["success", "failure", "cancel", "delayed"])
-    .optional(),
-});
+export const checkoutSchema = z
+  .object({
+    items: z.array(cartLineSchema).min(1, "سلتك فاضية").max(30),
+    phone: z
+      .string()
+      .trim()
+      .transform(normalizeSaudiPhone)
+      .refine(isValidSaudiMobile, "رقم الجوال غير صحيح — مثال: 0501234567"),
+    firstName: z.preprocess(
+      (v) => (typeof v === "string" && v.trim() === "" ? null : v),
+      z.string().trim().max(40).nullable().optional(),
+    ),
+    vehicle: vehicleSchema.optional().nullable(),
+    vehicleId: z.preprocess(
+      (v) => (v === "" ? null : v),
+      idSchema.nullable().optional(),
+    ),
+    clientTotalMinor: z.number().int().nonnegative().optional(),
+    source: z.enum(["qr", "link", "repeat", "admin"]).default("link"),
+    orderType: z.enum(["CURBSIDE", "DINE_IN"]).default("CURBSIDE"),
+    tableToken: z.preprocess(
+      (v) => (v === "" || v == null ? null : v),
+      z.string().min(12).max(128).nullable().optional(),
+    ),
+    idempotencyKey: z.string().min(8).max(128),
+    // COD-only storefront for now.
+    paymentMethod: z.literal("cash_on_delivery").default("cash_on_delivery"),
+    paymentSimulate: z
+      .enum(["success", "failure", "cancel", "delayed"])
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.orderType === "DINE_IN") {
+      if (!data.tableToken) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["tableToken"],
+          message: "امسح QR الطاولة من جديد",
+        });
+      }
+      return;
+    }
+    // Curbside requires vehicle details (saved id or new vehicle)
+    if (!data.vehicleId && !data.vehicle) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["vehicle"],
+        message: "أدخل بيانات السيارة",
+      });
+    }
+  });
 
 export type CheckoutInput = z.infer<typeof checkoutSchema>;
 export type CheckoutPaymentMethod = CheckoutInput["paymentMethod"];

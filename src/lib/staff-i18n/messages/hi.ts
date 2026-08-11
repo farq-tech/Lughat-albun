@@ -20,6 +20,9 @@ export const hi: StaffMessages = {
     empty: "कोई ऑर्डर नहीं",
     items: "आइटम",
     plate: "प्लेट",
+    table: "टेबल",
+    curbside: "कर्बसाइड",
+    dineIn: "डाइन-इन",
     since: "से",
     updateFailed: "ऑर्डर अपडेट नहीं हो सका",
     sectionNew: "नया",
@@ -43,6 +46,7 @@ export const hi: StaffMessages = {
   },
   detail: {
     car: "गाड़ी",
+    table: "टेबल",
     plate: "प्लेट",
     locationNote: "लोकेशन नोट",
     phone: "फ़ोन",

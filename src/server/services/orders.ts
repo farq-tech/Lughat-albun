@@ -75,6 +75,14 @@ export async function setCustomerPresence(input: {
   if (!rl.ok) throw new DomainError("RATE_LIMITED", "حاول مرة ثانية بعد شوي");
 
   const { order } = await getOrderForCustomer(input);
+
+  if (order.order_type === "DINE_IN") {
+    throw new DomainError(
+      "NOT_ALLOWED_STATUS",
+      "طلبات الطاولة ما تحتاج تأكيد وصول.",
+    );
+  }
+
   const current = normalizePresence(order.customer_presence);
 
   const allowed = canUpdateCustomerPresence({

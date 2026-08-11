@@ -22,6 +22,9 @@ export type StaffMessages = {
     empty: string;
     items: string;
     plate: string;
+    table: string;
+    curbside: string;
+    dineIn: string;
     since: string;
     updateFailed: string;
     sectionNew: string;
@@ -45,6 +48,7 @@ export type StaffMessages = {
   };
   detail: {
     car: string;
+    table: string;
     plate: string;
     locationNote: string;
     phone: string;
