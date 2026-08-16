@@ -1,5 +1,9 @@
-# Codemagic CI for لغات البن (Next.js web app on Vercel).
-# Scan this file from the Codemagic UI: Check for configuration files.
+# Codemagic CI for لغات البن
+# - web-ci: Next.js lint/test/build (Linux)
+# - ios-release: Capacitor IPA → TestFlight / App Store Connect (macOS)
+#
+# iOS signing secrets live in Codemagic group `lughat_ios`
+# (same keys as Farq's `farq_ios` group — copy them in the UI).
 
 workflows:
   web-ci:
@@ -33,23 +37,18 @@ workflows:
       - name: Install dependencies
         script: |
           npm ci
-
       - name: Lint
         script: |
           npm run lint
-
       - name: Typecheck
         script: |
           npm run typecheck
-
       - name: Unit tests
         script: |
           npm test
-
       - name: Build Next.js
         script: |
           npm run build
-
       - name: Export ops guide PDF (if present)
         script: |
           if [ -n "${LUGHAT_OPS_GUIDE_PDF_B64:-}" ]; then
@@ -58,12 +57,10 @@ workflows:
           else
             echo "No LUGHAT_OPS_GUIDE_PDF_B64 — skip"
           fi
-
     artifacts:
       - .next/BUILD_ID
       - lughat-albun-guide.pdf
 
-  # Manual smoke workflow — same checks, no auto trigger
   web-smoke:
     name: Web smoke (manual)
     instance_type: linux_x2
@@ -82,3 +79,74 @@ workflows:
           npm ci
           npm run typecheck
           npm test
+
+  ios-release:
+    name: Lughat iOS Release (TestFlight)
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    environment:
+      node: 22
+      xcode: latest
+      cocoapods: default
+      groups:
+        - lughat_ios
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: sa.lughat.albun
+      vars:
+        XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_SCHEME: App
+        BUNDLE_ID: sa.lughat.albun
+    scripts:
+      - name: Install npm dependencies
+        script: |
+          npm ci
+
+      - name: Sync Capacitor iOS
+        script: |
+          npx cap sync ios
+
+      - name: Set up code signing
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles \
+            --project "$XCODE_PROJECT"
+
+      - name: Increment build number
+        script: |
+          cd ios/App
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$BUNDLE_ID" || echo 0)
+          if [ -z "$LATEST" ] || [ "$LATEST" = "None" ]; then LATEST=0; fi
+          NEW=$((LATEST + 1))
+          agvtool new-version -all "$NEW"
+          agvtool new-marketing-version "1.0.0"
+          echo "iOS build number -> $NEW"
+
+      - name: Build IPA
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - ios/App/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
+    publishing:
+      email:
+        recipients:
+          - farqtechservices@gmail.com
+        notify:
+          success: true
+          failure: true
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
+        submit_to_app_store: false
