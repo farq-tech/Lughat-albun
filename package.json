@@ -12,9 +12,18 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "db:reset": "npx supabase db reset",
-    "db:start": "npx supabase start"
+    "db:start": "npx supabase start",
+    "cap:sync": "npx cap sync",
+    "cap:ios": "npx cap open ios",
+    "mobile:sync": "npx cap sync ios"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/ios": "^8.5.0",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@hookform/resolvers": "^5.7.1",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.2",
