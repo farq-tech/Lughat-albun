@@ -1,0 +1,84 @@
+# Codemagic CI for لغات البن (Next.js web app on Vercel).
+# Scan this file from the Codemagic UI: Check for configuration files.
+
+workflows:
+  web-ci:
+    name: Web CI
+    instance_type: linux_x2
+    max_build_duration: 45
+    environment:
+      node: 22
+      groups:
+        - ops
+        - app_env
+      vars:
+        APP_URL: https://lughat-albun.vercel.app
+        PAYMENT_PROVIDER: mock
+        ALLOW_MOCK_PAYMENTS_IN_PRODUCTION: "false"
+    cache:
+      cache_paths:
+        - ~/.npm
+        - node_modules
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+        - pattern: "cursor/*"
+          include: true
+          source: true
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm ci
+
+      - name: Lint
+        script: |
+          npm run lint
+
+      - name: Typecheck
+        script: |
+          npm run typecheck
+
+      - name: Unit tests
+        script: |
+          npm test
+
+      - name: Build Next.js
+        script: |
+          npm run build
+
+      - name: Export ops guide PDF (if present)
+        script: |
+          if [ -n "${LUGHAT_OPS_GUIDE_PDF_B64:-}" ]; then
+            echo "$LUGHAT_OPS_GUIDE_PDF_B64" | base64 --decode > "$CM_EXPORT_DIR/lughat-albun-guide.pdf"
+            echo "Exported ops guide PDF"
+          else
+            echo "No LUGHAT_OPS_GUIDE_PDF_B64 — skip"
+          fi
+
+    artifacts:
+      - .next/BUILD_ID
+      - lughat-albun-guide.pdf
+
+  # Manual smoke workflow — same checks, no auto trigger
+  web-smoke:
+    name: Web smoke (manual)
+    instance_type: linux_x2
+    max_build_duration: 30
+    environment:
+      node: 22
+      groups:
+        - ops
+        - app_env
+      vars:
+        APP_URL: https://lughat-albun.vercel.app
+        PAYMENT_PROVIDER: mock
+    scripts:
+      - name: Install + test
+        script: |
+          npm ci
+          npm run typecheck
+          npm test
