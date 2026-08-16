@@ -101,7 +101,8 @@ export type CheckoutInput = z.infer<typeof checkoutSchema>;
 export type CheckoutPaymentMethod = CheckoutInput["paymentMethod"];
 
 export function toDbPaymentMethod(
-  _method: CheckoutPaymentMethod = "cash_on_delivery",
+  method: CheckoutPaymentMethod = "cash_on_delivery",
 ): "CASH_ON_DELIVERY" {
+  void method;
   return "CASH_ON_DELIVERY";
 }

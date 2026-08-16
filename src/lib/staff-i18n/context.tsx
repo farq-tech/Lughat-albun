@@ -4,9 +4,8 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { MESSAGES } from "./messages";
@@ -33,29 +32,61 @@ function isStaffLocale(value: string | null | undefined): value is StaffLocale {
   return !!value && (STAFF_LOCALES as readonly string[]).includes(value);
 }
 
-export function StaffLocaleProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<StaffLocale>("en");
-  const [ready, setReady] = useState(false);
+function readStoredLocale(): StaffLocale {
+  try {
+    const stored = localStorage.getItem(STAFF_LOCALE_STORAGE_KEY);
+    if (isStaffLocale(stored)) return stored;
+  } catch {
+    // ignore
+  }
+  return "en";
+}
 
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STAFF_LOCALE_STORAGE_KEY);
-      if (isStaffLocale(stored)) {
-        setLocaleState(stored);
-      }
-    } catch {
-      // ignore
-    }
-    setReady(true);
-  }, []);
+let memoryLocale: StaffLocale = "en";
+let hydrated = false;
+const listeners = new Set<() => void>();
+
+function emit() {
+  for (const listener of listeners) listener();
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function getSnapshot(): StaffLocale {
+  if (!hydrated) {
+    memoryLocale = readStoredLocale();
+    hydrated = true;
+  }
+  return memoryLocale;
+}
+
+function getServerSnapshot(): StaffLocale {
+  return "en";
+}
+
+function writeLocale(next: StaffLocale) {
+  memoryLocale = next;
+  hydrated = true;
+  try {
+    localStorage.setItem(STAFF_LOCALE_STORAGE_KEY, next);
+  } catch {
+    // ignore
+  }
+  emit();
+}
+
+export function StaffLocaleProvider({ children }: { children: ReactNode }) {
+  const locale = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
 
   const setLocale = useCallback((next: StaffLocale) => {
-    setLocaleState(next);
-    try {
-      localStorage.setItem(STAFF_LOCALE_STORAGE_KEY, next);
-    } catch {
-      // ignore
-    }
+    writeLocale(next);
   }, []);
 
   const value = useMemo<StaffI18nContextValue>(() => {
@@ -84,7 +115,7 @@ export function StaffLocaleProvider({ children }: { children: ReactNode }) {
                 : ""
         }`}
         data-staff-locale={locale}
-        data-staff-i18n-ready={ready ? "1" : "0"}
+        data-staff-i18n-ready="1"
       >
         {children}
       </div>

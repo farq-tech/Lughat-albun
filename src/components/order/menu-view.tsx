@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useState,
+} from "react";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { SocialLinks } from "@/components/brand/social-links";
 import { useCart } from "@/components/order/cart-store";
@@ -92,12 +98,8 @@ export function MenuView({
   const { items, addItem, removeItem, setQuantity, itemCount, replaceItems } =
     useCart();
 
-  const itemsRef = useRef(items);
-  itemsRef.current = items;
-
-  useEffect(() => {
-    cacheMenu(menu);
-    const current = itemsRef.current;
+  const reconcileCartWithMenu = useEffectEvent(() => {
+    const current = items;
     const activeIds = new Set(
       menu.products.filter((p) => p.is_active && p.is_available).map((p) => p.id),
     );
@@ -152,7 +154,12 @@ export function MenuView({
           ),
       );
     if (changed) replaceItems(next);
-  }, [menu, replaceItems]);
+  });
+
+  useEffect(() => {
+    cacheMenu(menu);
+    reconcileCartWithMenu();
+  }, [menu]);
 
   const [active, setActive] = useState<ActiveProduct | null>(null);
   const [modifierSelections, setModifierSelections] = useState<
